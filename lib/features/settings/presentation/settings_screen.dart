@@ -7,6 +7,7 @@ import 'package:path/path.dart' as p;
 import 'package:share_plus/share_plus.dart';
 import 'package:file_picker/file_picker.dart';
 import '../../../core/settings_provider.dart';
+import '../../../core/money.dart';
 import '../../../core/db/database.dart';
 import '../../../l10n/app_localizations.dart';
 
@@ -221,11 +222,12 @@ class SettingsScreen extends ConsumerWidget {
           keyboardType: TextInputType.number,
           obscureText: true,
           maxLength: 4,
+          inputFormatters: const [ArabicDigitFormatter()],
           decoration: const InputDecoration(counterText: ''),
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(AppLocalizations.of(context)!.btn_cancel)),
-          FilledButton(onPressed: () => Navigator.pop(ctx, pinCtrl.text == storedPin), child: Text(AppLocalizations.of(context)!.btn_verify)),
+          FilledButton(onPressed: () => Navigator.pop(ctx, toWesternDigits(pinCtrl.text) == storedPin), child: Text(AppLocalizations.of(context)!.btn_verify)),
         ],
       ),
     );
@@ -248,6 +250,7 @@ class SettingsScreen extends ConsumerWidget {
               keyboardType: TextInputType.number,
               obscureText: true,
               maxLength: 4,
+              inputFormatters: const [ArabicDigitFormatter()],
               decoration: InputDecoration(labelText: AppLocalizations.of(context)!.fieldLabel_newPin, counterText: ''),
             ),
             const SizedBox(height: 8),
@@ -256,6 +259,7 @@ class SettingsScreen extends ConsumerWidget {
               keyboardType: TextInputType.number,
               obscureText: true,
               maxLength: 4,
+              inputFormatters: const [ArabicDigitFormatter()],
               decoration: InputDecoration(labelText: AppLocalizations.of(context)!.fieldLabel_confirmPin, counterText: ''),
             ),
           ],

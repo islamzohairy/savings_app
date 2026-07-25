@@ -101,6 +101,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         TextField(
           controller: _balanceCtrl,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          inputFormatters: const [ArabicDigitFormatter()],
           decoration: InputDecoration(labelText: AppLocalizations.of(context)!.fieldLabel_currentBalance, prefixText: '${symbolFor(_currency)} '),
         ),
         const Spacer(),
@@ -128,6 +129,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         TextField(
           controller: _goalAmountCtrl,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          inputFormatters: const [ArabicDigitFormatter()],
           decoration: InputDecoration(labelText: AppLocalizations.of(context)!.fieldLabel_targetAmount, prefixText: '${symbolFor(_currency)} '),
         ),
         const Spacer(),

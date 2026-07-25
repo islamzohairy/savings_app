@@ -48,6 +48,7 @@ class GoalsScreen extends ConsumerWidget {
             TextField(
               controller: amountCtrl,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: const [ArabicDigitFormatter()],
               decoration: InputDecoration(labelText: AppLocalizations.of(context)!.fieldLabel_targetAmountOptional, prefixText: currencyPrefix()),
             ),
           ],

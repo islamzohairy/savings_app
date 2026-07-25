@@ -77,6 +77,7 @@ class _AddEditTransactionScreenState extends ConsumerState<AddEditTransactionScr
           TextField(
             controller: _amountCtrl,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            inputFormatters: [ArabicDigitFormatter()],
             decoration: InputDecoration(labelText: AppLocalizations.of(context)!.fieldLabel_amount, prefixText: currencyPrefix()),
           ),
           const SizedBox(height: 16),

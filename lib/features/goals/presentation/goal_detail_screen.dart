@@ -140,6 +140,7 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
         content: TextField(
           controller: ctrl,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          inputFormatters: const [ArabicDigitFormatter()],
           decoration: InputDecoration(labelText: AppLocalizations.of(context)!.fieldLabel_amount, prefixText: currencyPrefix()),
         ),
         actions: [
@@ -168,6 +169,7 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
         content: TextField(
           controller: ctrl,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          inputFormatters: const [ArabicDigitFormatter()],
           decoration: InputDecoration(labelText: AppLocalizations.of(context)!.fieldLabel_amount, prefixText: currencyPrefix()),
         ),
         actions: [
@@ -206,6 +208,7 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
             TextField(
               controller: targetCtrl,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: const [ArabicDigitFormatter()],
               decoration: InputDecoration(labelText: AppLocalizations.of(context)!.fieldLabel_targetAmount, prefixText: currencyPrefix()),
             ),
           ],
