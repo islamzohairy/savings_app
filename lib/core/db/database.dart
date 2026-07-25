@@ -137,6 +137,7 @@ class AppDatabase {
       'themeMode': 'system',
       'appLockEnabled': 'false',
       'hasCompletedOnboarding': 'false',
+      'languageCode': 'system',
     };
     for (final entry in settings.entries) {
       await db.insert('settings', {'key': entry.key, 'value': entry.value});

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../core/db/database.dart';
 import '../../../core/money.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../categories/application/category_provider.dart';
 import '../../goals/application/goal_provider.dart';
 import '../application/transaction_provider.dart';
@@ -55,15 +56,15 @@ class _AddEditTransactionScreenState extends ConsumerState<AddEditTransactionScr
     final catsAsync = ref.watch(categoriesProvider);
     final goalsAsync = ref.watch(goalsProvider);
     return Scaffold(
-      appBar: AppBar(title: Text(_isEdit ? 'Edit Activity' : 'Add Activity')),
+      appBar: AppBar(title: Text(_isEdit ? AppLocalizations.of(context)!.appBarTitle_editActivity : AppLocalizations.of(context)!.appBarTitle_addActivity)),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           SegmentedButton<TransactionType>(
-            segments: const [
-              ButtonSegment(value: TransactionType.income, label: Text('Income'), icon: Icon(Icons.arrow_downward)),
-              ButtonSegment(value: TransactionType.expense, label: Text('Expense'), icon: Icon(Icons.arrow_upward)),
-              ButtonSegment(value: TransactionType.saving, label: Text('Saving'), icon: Icon(Icons.savings)),
+            segments: [
+              ButtonSegment(value: TransactionType.income, label: Text(AppLocalizations.of(context)!.type_income), icon: const Icon(Icons.arrow_downward)),
+              ButtonSegment(value: TransactionType.expense, label: Text(AppLocalizations.of(context)!.type_expense), icon: const Icon(Icons.arrow_upward)),
+              ButtonSegment(value: TransactionType.saving, label: Text(AppLocalizations.of(context)!.type_saving), icon: const Icon(Icons.savings)),
             ],
             selected: {_type},
             onSelectionChanged: (s) => setState(() {
@@ -76,19 +77,19 @@ class _AddEditTransactionScreenState extends ConsumerState<AddEditTransactionScr
           TextField(
             controller: _amountCtrl,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: InputDecoration(labelText: 'Amount', prefixText: currencyPrefix()),
+            decoration: InputDecoration(labelText: AppLocalizations.of(context)!.fieldLabel_amount, prefixText: currencyPrefix()),
           ),
           const SizedBox(height: 16),
           if (_type == TransactionType.saving)
             goalsAsync.when(
               loading: () => const LinearProgressIndicator(),
-              error: (e, _) => Text('Error: $e'),
+              error: (e, _) => Text(AppLocalizations.of(context)!.error_generic('$e')),
               data: (goals) {
                 final active = goals.where((g) => (g['status'] as int) == 0).toList();
                 return DropdownButtonFormField<int>(
                   initialValue: _goalId,
                   isExpanded: true,
-                  decoration: const InputDecoration(labelText: 'Goal'),
+                  decoration: InputDecoration(labelText: AppLocalizations.of(context)!.fieldLabel_goal),
                   items: active.map((g) => DropdownMenuItem(
                     value: g['id'] as int,
                     child: Text(g['name'] as String),
@@ -100,7 +101,7 @@ class _AddEditTransactionScreenState extends ConsumerState<AddEditTransactionScr
           else
             catsAsync.when(
               loading: () => const LinearProgressIndicator(),
-              error: (e, _) => Text('Error: $e'),
+              error: (e, _) => Text(AppLocalizations.of(context)!.error_generic('$e')),
               data: (cats) {
                 final active = cats.where((c) {
                   if ((c['isArchived'] as int) == 1) return false;
@@ -108,7 +109,7 @@ class _AddEditTransactionScreenState extends ConsumerState<AddEditTransactionScr
                   final catType = c['type'] as int;
                   return catType == _type.index;
                 }).toList();
-                final sourceLabel = _type == TransactionType.income ? 'Source' : 'Category';
+                final sourceLabel = _type == TransactionType.income ? AppLocalizations.of(context)!.fieldLabel_source : AppLocalizations.of(context)!.fieldLabel_category;
                 return DropdownButtonFormField<int>(
                   initialValue: _categoryId,
                   isExpanded: true,
@@ -124,7 +125,7 @@ class _AddEditTransactionScreenState extends ConsumerState<AddEditTransactionScr
           const SizedBox(height: 16),
           ListTile(
             contentPadding: EdgeInsets.zero,
-            title: const Text('Date'),
+            title: Text(AppLocalizations.of(context)!.fieldLabel_date),
             subtitle: Text(DateFormat.yMMMd().format(_date)),
             trailing: const Icon(Icons.calendar_today),
             onTap: _pickDate,
@@ -132,14 +133,14 @@ class _AddEditTransactionScreenState extends ConsumerState<AddEditTransactionScr
           const SizedBox(height: 16),
           TextField(
             controller: _noteCtrl,
-            decoration: const InputDecoration(labelText: 'Note (optional)'),
+            decoration: InputDecoration(labelText: AppLocalizations.of(context)!.fieldLabel_noteOptional),
           ),
           const SizedBox(height: 24),
           FilledButton(
             onPressed: _isSaving ? null : _save,
             child: _isSaving
                 ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                : Text(_isEdit ? 'Update' : 'Add'),
+                : Text(_isEdit ? AppLocalizations.of(context)!.btn_update : AppLocalizations.of(context)!.btn_add),
           ),
         ],
       ),

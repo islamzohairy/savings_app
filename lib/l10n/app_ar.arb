@@ -1,0 +1,220 @@
+{
+  "@@locale": "ar",
+
+  "appTitle": "المدخرات",
+
+  "navHome": "الرئيسية",
+  "navActivity": "النشاط",
+  "navReports": "التقارير",
+  "navGoals": "الأهداف",
+  "navSettings": "الإعدادات",
+
+  "appBarTitle_home": "المدخرات",
+  "appBarTitle_activity": "النشاط",
+  "appBarTitle_reports": "التقارير",
+  "appBarTitle_goals": "الأهداف",
+  "appBarTitle_settings": "الإعدادات",
+  "appBarTitle_categories": "الفئات",
+  "appBarTitle_addActivity": "إضافة معاملة",
+  "appBarTitle_editActivity": "تعديل المعاملة",
+
+  "label_spendableBalance": "الرصيد المتاح",
+  "label_inGoals": "في الأهداف: {amount}",
+  "@label_inGoals": {
+    "placeholders": { "amount": { "type": "String" } }
+  },
+  "label_monthSummary": "ملخص {period}",
+  "@label_monthSummary": {
+    "placeholders": { "period": { "type": "String" } }
+  },
+  "label_income": "الدخل",
+  "label_expenses": "المصروفات",
+  "label_net": "الصافي",
+  "label_savingsRate": "معدل الادخار",
+  "label_movedToGoals": "تحويل للأهداف",
+  "label_unknownCategory": "غير معروف",
+  "label_percent": "{value}%",
+  "@label_percent": {
+    "placeholders": { "value": { "type": "String" } }
+  },
+  "label_amountOfTarget": "{current} / {target}",
+  "@label_amountOfTarget": {
+    "placeholders": { "current": { "type": "String" }, "target": { "type": "String" } }
+  },
+  "label_percentSaved": "{percent}% مُدّخر",
+  "@label_percentSaved": {
+    "placeholders": { "percent": { "type": "String" } }
+  },
+  "label_targetReachedExtra": "تم تحقيق الهدف — {extra} إضافية مُدّخرة",
+  "@label_targetReachedExtra": {
+    "placeholders": { "extra": { "type": "String" } }
+  },
+  "label_savedSoFar": "المُدّخر حتى الآن",
+  "label_projectedCompletion": "الإنجاز المتوقع: {date}",
+  "@label_projectedCompletion": {
+    "placeholders": { "date": { "type": "String" } }
+  },
+  "label_cycleDateRange": "{start} – {end}",
+  "@label_cycleDateRange": {
+    "placeholders": { "start": { "type": "String" }, "end": { "type": "String" } }
+  },
+
+  "toggle_monthly": "شهري",
+  "toggle_lifetime": " مدى الحياة",
+
+  "sectionTitle_goals": "الأهداف",
+  "sectionTitle_history": "السجل",
+  "sectionTitle_general": "عام",
+  "sectionTitle_security": "الأمان",
+  "sectionTitle_data": "البيانات",
+  "sectionTitle_about": "حول التطبيق",
+  "sectionTitle_expensesByCategory": "المصروفات حسب الفئة",
+  "sectionTitle_savingsTrend": "اتجاه الادخار (6 دورات)",
+  "sectionTitle_topExpenses": "أكبر المصروفات",
+
+  "filter_all": "الكل",
+  "filter_income": "الدخل",
+  "filter_expense": "مصروف",
+  "filter_saving": "ادخار",
+
+  "type_income": "دخل",
+  "type_expense": "مصروف",
+  "type_saving": "ادخار",
+
+  "emptyState_startTracking": "ابدأ بتتبع مدخراتك!",
+  "emptyState_noActivity": "لا يوجد نشاط",
+  "emptyState_noGoals": "لا توجد أهداف بعد",
+  "emptyState_noCategories": "لا توجد فئات",
+  "emptyState_noContributions": "لا توجد مساهمات بعد",
+  "emptyState_noDataForCycle": "لا توجد بيانات لهذه الدورة",
+
+  "error_generic": "خطأ: {error}",
+  "@error_generic": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+
+  "btn_add": "إضافة",
+  "btn_update": "تحديث",
+  "btn_save": "حفظ",
+  "btn_delete": "حذف",
+  "btn_cancel": "إلغاء",
+  "btn_create": "إنشاء",
+  "btn_verify": "تحقق",
+  "btn_back": "رجوع",
+  "btn_next": "التالي",
+  "btn_skip": "تخطي",
+  "btn_getStarted": "ابدأ الآن",
+  "btn_startSaving": "ابدأ الادخار",
+  "btn_loadMore": "تحميل المزيد",
+  "btn_contribute": "إضافة مبلغ",
+  "btn_withdraw": "سحب مبلغ",
+
+  "menu_edit": "تعديل",
+  "menu_delete": "حذف",
+  "menu_archive": "أرشفة",
+  "menu_unarchive": "إلغاء الأرشفة",
+  "menu_pause": "إيقاف مؤقت",
+  "menu_resume": "استئناف",
+  "menu_markComplete": "تحديد كمكتمل",
+
+  "fieldLabel_amount": "المبلغ",
+  "fieldLabel_name": "الاسم",
+  "fieldLabel_type": "النوع",
+  "fieldLabel_date": "التاريخ",
+  "fieldLabel_noteOptional": "ملاحظة (اختياري)",
+  "fieldLabel_source": "المصدر",
+  "fieldLabel_category": "الفئة",
+  "fieldLabel_goal": "الهدف",
+  "fieldLabel_targetAmount": "المبلغ المستهدف",
+  "fieldLabel_targetAmountOptional": "المبلغ المستهدف (اختياري)",
+  "fieldLabel_goalName": "اسم الهدف",
+  "fieldLabel_currentBalance": "رصيد المدخرات الحالي",
+  "fieldLabel_newPin": "الرمز السري الجديد",
+  "fieldLabel_confirmPin": "تأكيد الرمز السري",
+
+  "dialog_deleteActivityTitle": "حذف المعاملة؟",
+  "dialog_deleteCategoryTitle": "حذف الفئة؟",
+  "dialog_deleteCategoryConfirm": "هل أنت متأكد من حذف هذه الفئة؟",
+  "dialog_addCategoryTitle": "إضافة فئة",
+  "dialog_editCategoryTitle": "تعديل الفئة",
+  "dialog_newGoalTitle": "هدف جديد",
+  "dialog_editGoalTitle": "تعديل الهدف",
+  "dialog_contributeTitle": "إضافة مبلغ",
+  "dialog_withdrawTitle": "سحب مبلغ",
+  "dialog_currencyTitle": "العملة",
+  "dialog_themeTitle": "المظهر",
+  "dialog_verifyCurrentPinTitle": "تحقق من الرمز السري الحالي",
+  "dialog_setNewPinTitle": "تعيين رمز سري جديد",
+
+  "categoryInUseWarning": "{count, plural, zero{غير مستخدم في أي معاملات} one{مستخدم في معاملة واحدة} two{مستخدم في معاملتين} few{مستخدم في {count} معاملات} many{مستخدم في {count} معاملة} other{مستخدم في {count} معاملة}}",
+  "@categoryInUseWarning": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+
+  "categoryType_income": "دخل",
+  "categoryType_expense": "مصروف",
+
+  "goalStatus_active": "نشط",
+  "goalStatus_paused": "متوقف مؤقتاً",
+  "goalStatus_completed": "مكتمل",
+  "goalStatus_archived": "مؤرشف",
+
+  "theme_system": "النظام",
+  "theme_light": "فاتح",
+  "theme_dark": "داكن",
+
+  "setting_language": "اللغة",
+  "setting_languageSubtitle": "الإعداد الافتراضي للنظام",
+  "dialog_languageTitle": "اللغة",
+  "lang_system": "النظام",
+  "lang_en": "English",
+  "lang_ar": "العربية",
+  "setting_currency": "العملة",
+  "setting_theme": "المظهر",
+  "setting_appLock": "قفل التطبيق",
+  "setting_appLockSubtitle": "تطلب الرمز السري عند التشغيل",
+  "setting_changePin": "تغيير الرمز السري",
+  "setting_changePinSubtitle": "تحديث رمز سري للقفل",
+  "setting_backup": "نسخة احتياطية",
+  "setting_backupSubtitle": "تصدير ملف قاعدة البيانات",
+  "setting_restore": "استعادة",
+  "setting_restoreSubtitle": "استيراد ملف قاعدة البيانات",
+  "setting_appName": "تطبيق المدخرات",
+  "setting_appVersion": "الإصدار 1.0.0",
+
+  "share_backupLabel": "نسخة احتياطية من تطبيق المدخرات",
+
+  "snackbar_invalidDbFile": "ملف قاعدة البيانات غير صالح",
+  "snackbar_dbRestored": "تمت استعادة قاعدة البيانات. يرجى إعادة تشغيل التطبيق.",
+  "snackbar_restoreFailed": "فشلت الاستعادة: {error}",
+  "@snackbar_restoreFailed": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "snackbar_pinValidation": "يجب أن يتطابق الرمزان وأن يكونا 4 أرقام",
+  "snackbar_pinUpdated": "تم تحديث الرمز السري",
+
+  "txnSubtitle_savingToGoal": "{goalName}",
+  "@txnSubtitle_savingToGoal": {
+    "placeholders": { "goalName": { "type": "String" } }
+  },
+  "txnSubtitle_saving": "ادخار",
+
+  "semantics_addNewActivity": "إضافة معاملة جديدة",
+  "semantics_manageCategories": "إدارة الفئات",
+  "semantics_addNewCategory": "إضافة فئة جديدة",
+
+  "onboarding_welcomeTitle": "مرحباً بك في المدخرات",
+  "onboarding_welcomeBody": "تتبع مدخراتك وشاهد أين يذهب مالك.",
+  "onboarding_currencyTitle": "العملة",
+  "onboarding_balanceTitle": "الرصيد الأولي (اختياري)",
+  "onboarding_goalTitle": "الهدف الأول (اختياري)",
+  "onboarding_doneTitle": "كل شيء جاهز!",
+  "onboarding_doneBody": "أنت الآن جاهز لبدء تتبع مدخراتك.",
+
+  "note_startingBalance": "الرصيد الأولي",
+  "note_initialContribution": "المساهمة الأولى",
+
+  "appLock_enterPin": "أدخل الرمز السري",
+  "appLock_setPin": "تعيين رمز سري",
+  "appLock_wrongPin": "رمز سري خاطئ"
+}

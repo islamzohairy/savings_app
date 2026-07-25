@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/db/database.dart';
 import '../../../core/money.dart';
+import '../../../l10n/app_localizations.dart';
 import '../application/goal_provider.dart';
 import '../../dashboard/presentation/dashboard_screen.dart';
 import 'goal_detail_screen.dart';
@@ -13,12 +14,12 @@ class GoalsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final goals = ref.watch(goalsProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('Goals')),
+      appBar: AppBar(title: Text(AppLocalizations.of(context)!.appBarTitle_goals)),
       body: goals.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Error: $e')),
+        error: (e, _) => Center(child: Text(AppLocalizations.of(context)!.error_generic('$e'))),
         data: (list) {
-          if (list.isEmpty) return const Center(child: Text('No goals yet'));
+          if (list.isEmpty) return Center(child: Text(AppLocalizations.of(context)!.emptyState_noGoals));
           return ListView.builder(
             itemCount: list.length,
             itemBuilder: (ctx, i) => _GoalTile(goal: list[i]),
@@ -38,21 +39,21 @@ class GoalsScreen extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('New Goal'),
+        title: Text(AppLocalizations.of(context)!.dialog_newGoalTitle),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'Name')),
+            TextField(controller: nameCtrl, decoration: InputDecoration(labelText: AppLocalizations.of(context)!.fieldLabel_name)),
             const SizedBox(height: 8),
             TextField(
               controller: amountCtrl,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              decoration: const InputDecoration(labelText: 'Target amount (optional)', prefixText: '\$ '),
+              decoration: InputDecoration(labelText: AppLocalizations.of(context)!.fieldLabel_targetAmountOptional, prefixText: currencyPrefix()),
             ),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(AppLocalizations.of(context)!.btn_cancel)),
           FilledButton(onPressed: () async {
             if (nameCtrl.text.trim().isEmpty) return;
             final minor = parseAmountToMinor(amountCtrl.text);
@@ -70,7 +71,7 @@ class GoalsScreen extends ConsumerWidget {
             refreshGoals(ref);
             refreshDashboard(ref);
             if (ctx.mounted) Navigator.pop(ctx);
-          }, child: const Text('Create')),
+          }, child: Text(AppLocalizations.of(context)!.btn_create)),
         ],
       ),
     );
@@ -80,6 +81,15 @@ class GoalsScreen extends ConsumerWidget {
 class _GoalTile extends ConsumerWidget {
   const _GoalTile({required this.goal});
   final Map<String, dynamic> goal;
+
+  String _statusLabel(GoalStatus status, AppLocalizations loc) {
+    switch (status) {
+      case GoalStatus.active: return loc.goalStatus_active;
+      case GoalStatus.paused: return loc.goalStatus_paused;
+      case GoalStatus.completed: return loc.goalStatus_completed;
+      case GoalStatus.archived: return loc.goalStatus_archived;
+    }
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -108,7 +118,7 @@ class _GoalTile extends ConsumerWidget {
                     ],
                   ),
                 )
-              : Text(status.name),
+              : Text(_statusLabel(status, AppLocalizations.of(context)!)),
           onTap: () => Navigator.push(context, MaterialPageRoute(
             builder: (_) => GoalDetailScreen(goalId: goal['id'] as int),
           )).then((_) => refreshGoals(ref)),

@@ -9,6 +9,7 @@ import '../features/goals/presentation/goals_screen.dart';
 import '../features/goals/presentation/goal_detail_screen.dart';
 import '../features/reports/presentation/reports_screen.dart';
 import '../features/settings/presentation/settings_screen.dart';
+import '../l10n/app_localizations.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
@@ -44,12 +45,12 @@ class ScaffoldWithNav extends StatelessWidget {
       bottomNavigationBar: NavigationBar(
         selectedIndex: _calculateIndex(context),
         onDestinationSelected: (i) => _onTap(context, i),
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Home'),
-          NavigationDestination(icon: Icon(Icons.receipt_long_outlined), selectedIcon: Icon(Icons.receipt_long), label: 'Activity'),
-          NavigationDestination(icon: Icon(Icons.bar_chart_outlined), selectedIcon: Icon(Icons.bar_chart), label: 'Reports'),
-          NavigationDestination(icon: Icon(Icons.savings_outlined), selectedIcon: Icon(Icons.savings), label: 'Goals'),
-          NavigationDestination(icon: Icon(Icons.settings_outlined), selectedIcon: Icon(Icons.settings), label: 'Settings'),
+        destinations: [
+          NavigationDestination(icon: const Icon(Icons.home_outlined), selectedIcon: const Icon(Icons.home), label: AppLocalizations.of(context)!.navHome),
+          NavigationDestination(icon: const Icon(Icons.receipt_long_outlined), selectedIcon: const Icon(Icons.receipt_long), label: AppLocalizations.of(context)!.navActivity),
+          NavigationDestination(icon: const Icon(Icons.bar_chart_outlined), selectedIcon: const Icon(Icons.bar_chart), label: AppLocalizations.of(context)!.navReports),
+          NavigationDestination(icon: const Icon(Icons.savings_outlined), selectedIcon: const Icon(Icons.savings), label: AppLocalizations.of(context)!.navGoals),
+          NavigationDestination(icon: const Icon(Icons.settings_outlined), selectedIcon: const Icon(Icons.settings), label: AppLocalizations.of(context)!.navSettings),
         ],
       ),
     );

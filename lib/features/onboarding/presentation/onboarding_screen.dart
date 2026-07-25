@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/db/database.dart';
 import '../../../core/money.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../transactions/application/transaction_provider.dart';
 
 class OnboardingScreen extends ConsumerStatefulWidget {
@@ -51,22 +52,22 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   Widget _welcomeStep() => _stepShell(
-    title: 'Welcome to Savings',
+    title: AppLocalizations.of(context)!.onboarding_welcomeTitle,
     child: Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         const Icon(Icons.savings, size: 80),
         const SizedBox(height: 24),
-        Text('Track your savings, see where your money goes.', style: Theme.of(context).textTheme.bodyLarge, textAlign: TextAlign.center),
+        Text(AppLocalizations.of(context)!.onboarding_welcomeBody, style: Theme.of(context).textTheme.bodyLarge, textAlign: TextAlign.center),
         const Spacer(),
-        FilledButton(onPressed: _next, child: const Text('Get Started')),
+        FilledButton(onPressed: _next, child: Text(AppLocalizations.of(context)!.btn_getStarted)),
         const SizedBox(height: 16),
       ],
     ),
   );
 
   Widget _currencyStep() => _stepShell(
-    title: 'Currency',
+    title: AppLocalizations.of(context)!.onboarding_currencyTitle,
     child: Column(
       children: [
         const SizedBox(height: 32),
@@ -82,9 +83,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         const Spacer(),
         Row(
           children: [
-            TextButton(onPressed: _prev, child: const Text('Back')),
+            TextButton(onPressed: _prev, child: Text(AppLocalizations.of(context)!.btn_back)),
             const Spacer(),
-            FilledButton(onPressed: _next, child: const Text('Next')),
+            FilledButton(onPressed: _next, child: Text(AppLocalizations.of(context)!.btn_next)),
           ],
         ),
         const SizedBox(height: 16),
@@ -93,23 +94,23 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   );
 
   Widget _balanceStep() => _stepShell(
-    title: 'Starting Balance (optional)',
+    title: AppLocalizations.of(context)!.onboarding_balanceTitle,
     child: Column(
       children: [
         const SizedBox(height: 32),
         TextField(
           controller: _balanceCtrl,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          decoration: InputDecoration(labelText: 'Current savings balance', prefixText: '${symbolFor(_currency)} '),
+          decoration: InputDecoration(labelText: AppLocalizations.of(context)!.fieldLabel_currentBalance, prefixText: '${symbolFor(_currency)} '),
         ),
         const Spacer(),
         Row(
           children: [
-            TextButton(onPressed: _prev, child: const Text('Back')),
+            TextButton(onPressed: _prev, child: Text(AppLocalizations.of(context)!.btn_back)),
             const Spacer(),
-            TextButton(onPressed: _next, child: const Text('Skip')),
+            TextButton(onPressed: _next, child: Text(AppLocalizations.of(context)!.btn_skip)),
             const SizedBox(width: 8),
-            FilledButton(onPressed: _next, child: const Text('Next')),
+            FilledButton(onPressed: _next, child: Text(AppLocalizations.of(context)!.btn_next)),
           ],
         ),
         const SizedBox(height: 16),
@@ -118,25 +119,25 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   );
 
   Widget _goalStep() => _stepShell(
-    title: 'First Goal (optional)',
+    title: AppLocalizations.of(context)!.onboarding_goalTitle,
     child: Column(
       children: [
         const SizedBox(height: 32),
-        TextField(controller: _goalNameCtrl, decoration: const InputDecoration(labelText: 'Goal name')),
+        TextField(controller: _goalNameCtrl, decoration: InputDecoration(labelText: AppLocalizations.of(context)!.fieldLabel_goalName)),
         const SizedBox(height: 16),
         TextField(
           controller: _goalAmountCtrl,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          decoration: InputDecoration(labelText: 'Target amount', prefixText: '${symbolFor(_currency)} '),
+          decoration: InputDecoration(labelText: AppLocalizations.of(context)!.fieldLabel_targetAmount, prefixText: '${symbolFor(_currency)} '),
         ),
         const Spacer(),
         Row(
           children: [
-            TextButton(onPressed: _prev, child: const Text('Back')),
+            TextButton(onPressed: _prev, child: Text(AppLocalizations.of(context)!.btn_back)),
             const Spacer(),
-            TextButton(onPressed: _next, child: const Text('Skip')),
+            TextButton(onPressed: _next, child: Text(AppLocalizations.of(context)!.btn_skip)),
             const SizedBox(width: 8),
-            FilledButton(onPressed: _next, child: const Text('Next')),
+            FilledButton(onPressed: _next, child: Text(AppLocalizations.of(context)!.btn_next)),
           ],
         ),
         const SizedBox(height: 16),
@@ -145,15 +146,15 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   );
 
   Widget _doneStep() => _stepShell(
-    title: 'All Set!',
+    title: AppLocalizations.of(context)!.onboarding_doneTitle,
     child: Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Icon(Icons.check_circle, size: 80, color: Theme.of(context).colorScheme.primary),
         const SizedBox(height: 24),
-        Text('You\'re ready to start tracking your savings.', style: Theme.of(context).textTheme.bodyLarge, textAlign: TextAlign.center),
+        Text(AppLocalizations.of(context)!.onboarding_doneBody, style: Theme.of(context).textTheme.bodyLarge, textAlign: TextAlign.center),
         const Spacer(),
-        FilledButton(onPressed: _finish, child: const Text('Start Saving')),
+        FilledButton(onPressed: _finish, child: Text(AppLocalizations.of(context)!.btn_startSaving)),
         const SizedBox(height: 16),
       ],
     ),
@@ -198,7 +199,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         'type': 0, // income
         'amountMinor': balanceMinor,
         'date': now,
-        'note': 'Starting balance',
+        'note': AppLocalizations.of(context)!.note_startingBalance,
         'createdAt': now,
         'updatedAt': now,
       });
@@ -224,7 +225,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           'amountMinor': goalMinor,
           'goalId': goalId,
           'date': now,
-          'note': 'Initial contribution',
+          'note': AppLocalizations.of(context)!.note_initialContribution,
           'createdAt': now,
           'updatedAt': now,
         });

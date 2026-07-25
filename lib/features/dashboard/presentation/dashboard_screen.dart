@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../core/date_utils.dart';
 import '../../../core/money.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../transactions/application/transaction_provider.dart';
 import '../../goals/application/goal_provider.dart';
 
@@ -59,13 +60,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   Widget build(BuildContext context) {
     final data = ref.watch(dashboardDataProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('Savings')),
+      appBar: AppBar(title: Text(AppLocalizations.of(context)!.appBarTitle_home)),
       floatingActionButton: Semantics(
-        label: 'Add new activity',
+        label: AppLocalizations.of(context)!.semantics_addNewActivity,
         child: FloatingActionButton.extended(
           onPressed: () => _quickAdd(context),
           icon: const Icon(Icons.add),
-          label: const Text('Add'),
+          label: Text(AppLocalizations.of(context)!.btn_add),
         ),
       ),
       body: RefreshIndicator(
@@ -76,7 +77,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         },
         child: data.when(
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) => Center(child: Text('Error: $e')),
+          error: (e, _) => Center(child: Text(AppLocalizations.of(context)!.error_generic('$e'))),
           data: (d) => ListView(
             padding: const EdgeInsets.all(16),
             children: [
@@ -94,7 +95,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               ),
               const SizedBox(height: 12),
               if (d.goals.isNotEmpty) ...[
-                Text('Goals', style: Theme.of(context).textTheme.titleMedium),
+                Text(AppLocalizations.of(context)!.sectionTitle_goals, style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: 8),
                 ...d.goals.map((g) => _GoalProgressCard(goal: g)),
               ],
@@ -103,7 +104,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 Icon(Icons.savings_outlined, size: 64, color: Theme.of(context).colorScheme.outline),
                 const SizedBox(height: 16),
                 Text(
-                  'Start tracking your savings!',
+                  AppLocalizations.of(context)!.emptyState_startTracking,
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Theme.of(context).colorScheme.outline),
                   textAlign: TextAlign.center,
                 ),
@@ -132,16 +133,16 @@ class _BalanceCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Spendable Balance', style: Theme.of(context).textTheme.labelLarge),
+            Text(AppLocalizations.of(context)!.label_spendableBalance, style: Theme.of(context).textTheme.labelLarge),
             const SizedBox(height: 4),
             FittedBox(
-              alignment: Alignment.centerLeft,
+              alignment: AlignmentDirectional.centerStart,
               fit: BoxFit.scaleDown,
               child: Text(formatAmount(spendableBalance), style: Theme.of(context).textTheme.headlineLarge?.copyWith(color: color)),
             ),
             if (goalBalances > 0) ...[
               const SizedBox(height: 4),
-              Text('In Goals: ${formatAmount(goalBalances)}', style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              Text(AppLocalizations.of(context)!.label_inGoals(formatAmount(goalBalances)), style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: Theme.of(context).colorScheme.outline,
               )),
             ],
@@ -164,7 +165,7 @@ class _MonthSummaryCard extends StatelessWidget {
     final displayIncome = showLifetime ? lifetimeIncome : income;
     final displayExpenses = showLifetime ? lifetimeExpenses : expenses;
     final displayRate = displayIncome > 0 ? ((displayIncome - displayExpenses) / displayIncome * 100).clamp(0.0, 100.0) : 0.0;
-    final label = showLifetime ? 'Lifetime' : DateFormat.MMMM().format(DateTime.now());
+    final label = showLifetime ? AppLocalizations.of(context)!.toggle_lifetime : DateFormat.MMMM().format(DateTime.now());
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -174,13 +175,13 @@ class _MonthSummaryCard extends StatelessWidget {
             Row(
               children: [
                 Flexible(
-                  child: Text('$label Summary', style: Theme.of(context).textTheme.titleMedium, overflow: TextOverflow.ellipsis),
+                  child: Text(AppLocalizations.of(context)!.label_monthSummary(label), style: Theme.of(context).textTheme.titleMedium, overflow: TextOverflow.ellipsis),
                 ),
                 const SizedBox(width: 8),
                 SegmentedButton<bool>(
-                  segments: const [
-                    ButtonSegment(value: false, label: Text('Monthly')),
-                    ButtonSegment(value: true, label: Text('Lifetime')),
+                  segments: [
+                    ButtonSegment(value: false, label: Text(AppLocalizations.of(context)!.toggle_monthly)),
+                    ButtonSegment(value: true, label: Text(AppLocalizations.of(context)!.toggle_lifetime)),
                   ],
                   selected: {showLifetime},
                   onSelectionChanged: (_) => onToggle(),
@@ -196,16 +197,16 @@ class _MonthSummaryCard extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _StatColumn(label: 'Income', amount: displayIncome, color: Theme.of(context).colorScheme.primary),
-                _StatColumn(label: 'Expenses', amount: displayExpenses, color: Theme.of(context).colorScheme.error),
-                _StatColumn(label: 'Net', amount: displayIncome - displayExpenses, color: Theme.of(context).colorScheme.tertiary),
+                _StatColumn(label: AppLocalizations.of(context)!.label_income, amount: displayIncome, color: Theme.of(context).colorScheme.primary),
+                _StatColumn(label: AppLocalizations.of(context)!.label_expenses, amount: displayExpenses, color: Theme.of(context).colorScheme.error),
+                _StatColumn(label: AppLocalizations.of(context)!.label_net, amount: displayIncome - displayExpenses, color: Theme.of(context).colorScheme.tertiary),
               ],
             ),
             const Divider(height: 24),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Savings Rate'),
+                Text(AppLocalizations.of(context)!.label_savingsRate),
                 Text('${displayRate.toStringAsFixed(1)}%', style: Theme.of(context).textTheme.titleMedium),
               ],
             ),
@@ -214,7 +215,7 @@ class _MonthSummaryCard extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Moved to Goals'),
+                  Text(AppLocalizations.of(context)!.label_movedToGoals),
                   Text(formatAmount(movedToGoals), style: Theme.of(context).textTheme.titleSmall),
                 ],
               ),

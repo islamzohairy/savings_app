@@ -8,6 +8,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:file_picker/file_picker.dart';
 import '../../../core/settings_provider.dart';
 import '../../../core/db/database.dart';
+import '../../../l10n/app_localizations.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -17,66 +18,73 @@ class SettingsScreen extends ConsumerWidget {
     final settings = ref.watch(settingsProvider);
     final currency = settings['currencyCode'] ?? 'USD';
     final themeMode = settings['themeMode'] ?? 'system';
+    final languageCode = settings['languageCode'] ?? 'system';
     final appLockEnabled = settings['appLockEnabled'] == 'true';
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Settings')),
+      appBar: AppBar(title: Text(AppLocalizations.of(context)!.appBarTitle_settings)),
       body: ListView(
         children: [
-          _section('General'),
+          _section(AppLocalizations.of(context)!.sectionTitle_general, context),
           ListTile(
-            title: const Text('Currency'),
+            title: Text(AppLocalizations.of(context)!.setting_currency),
             subtitle: Text(currency),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => _pickCurrency(context, ref),
           ),
           ListTile(
-            title: const Text('Theme'),
-            subtitle: Text(themeMode.toUpperCase()),
+            title: Text(AppLocalizations.of(context)!.setting_theme),
+            subtitle: Text(_themeLabel(themeMode, AppLocalizations.of(context)!)),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => _pickTheme(context, ref),
           ),
+          ListTile(
+            title: Text(AppLocalizations.of(context)!.setting_language),
+            subtitle: Text(_languageLabel(languageCode, AppLocalizations.of(context)!)),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => _pickLanguage(context, ref),
+          ),
           const Divider(),
-          _section('Security'),
+          _section(AppLocalizations.of(context)!.sectionTitle_security, context),
           SwitchListTile(
-            title: const Text('App Lock'),
-            subtitle: const Text('Require PIN on launch'),
+            title: Text(AppLocalizations.of(context)!.setting_appLock),
+            subtitle: Text(AppLocalizations.of(context)!.setting_appLockSubtitle),
             value: appLockEnabled,
             onChanged: (v) => ref.read(settingsProvider.notifier).set('appLockEnabled', '$v'),
           ),
           if (appLockEnabled)
             ListTile(
-              title: const Text('Change PIN'),
-              subtitle: const Text('Update your app lock PIN'),
+              title: Text(AppLocalizations.of(context)!.setting_changePin),
+              subtitle: Text(AppLocalizations.of(context)!.setting_changePinSubtitle),
               trailing: const Icon(Icons.chevron_right),
               onTap: () => _changePin(context),
             ),
           const Divider(),
-          _section('Data'),
+          _section(AppLocalizations.of(context)!.sectionTitle_data, context),
           ListTile(
-            title: const Text('Backup'),
-            subtitle: const Text('Export database file'),
+            title: Text(AppLocalizations.of(context)!.setting_backup),
+            subtitle: Text(AppLocalizations.of(context)!.setting_backupSubtitle),
             trailing: const Icon(Icons.download),
-            onTap: _backup,
+            onTap: () => _backup(context),
           ),
           ListTile(
-            title: const Text('Restore'),
-            subtitle: const Text('Import database file'),
+            title: Text(AppLocalizations.of(context)!.setting_restore),
+            subtitle: Text(AppLocalizations.of(context)!.setting_restoreSubtitle),
             trailing: const Icon(Icons.upload),
             onTap: () => _restore(context),
           ),
           const Divider(),
-          _section('About'),
-          const ListTile(
-            title: Text('Savings App'),
-            subtitle: Text('Version 1.0.0'),
+          _section(AppLocalizations.of(context)!.sectionTitle_about, context),
+          ListTile(
+            title: Text(AppLocalizations.of(context)!.setting_appName),
+            subtitle: Text(AppLocalizations.of(context)!.setting_appVersion),
           ),
         ],
       ),
     );
   }
 
-  Widget _section(String title) {
+  Widget _section(String title, BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
       child: Builder(builder: (context) => Text(title, style: Theme.of(context).textTheme.labelLarge?.copyWith(
@@ -85,12 +93,50 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
+  String _themeLabel(String mode, AppLocalizations loc) {
+    switch (mode) {
+      case 'light': return loc.theme_light;
+      case 'dark': return loc.theme_dark;
+      default: return loc.theme_system;
+    }
+  }
+
+  String _languageLabel(String code, AppLocalizations loc) {
+    switch (code) {
+      case 'en': return loc.lang_en;
+      case 'ar': return loc.lang_ar;
+      default: return loc.lang_system;
+    }
+  }
+
+  Future<void> _pickLanguage(BuildContext context, WidgetRef ref) async {
+    final loc = AppLocalizations.of(context)!;
+    final options = [
+      ('system', loc.lang_system),
+      ('en', loc.lang_en),
+      ('ar', loc.lang_ar),
+    ];
+    final picked = await showDialog<String>(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        title: Text(loc.dialog_languageTitle),
+        children: options.map((o) => SimpleDialogOption(
+          onPressed: () => Navigator.pop(ctx, o.$1),
+          child: Text(o.$2),
+        )).toList(),
+      ),
+    );
+    if (picked != null) {
+      await ref.read(settingsProvider.notifier).set('languageCode', picked);
+    }
+  }
+
   Future<void> _pickCurrency(BuildContext context, WidgetRef ref) async {
     final currencies = ['USD', 'EUR', 'GBP', 'EGP', 'SAR', 'AED'];
     final picked = await showDialog<String>(
       context: context,
       builder: (ctx) => SimpleDialog(
-        title: const Text('Currency'),
+        title: Text(AppLocalizations.of(context)!.dialog_currencyTitle),
         children: currencies.map((c) => SimpleDialogOption(
           onPressed: () => Navigator.pop(ctx, c),
           child: Text(c),
@@ -107,10 +153,10 @@ class SettingsScreen extends ConsumerWidget {
     final picked = await showDialog<String>(
       context: context,
       builder: (ctx) => SimpleDialog(
-        title: const Text('Theme'),
+        title: Text(AppLocalizations.of(context)!.dialog_themeTitle),
         children: modes.map((m) => SimpleDialogOption(
           onPressed: () => Navigator.pop(ctx, m),
-          child: Text(m.toUpperCase()),
+          child: Text(_themeLabel(m, AppLocalizations.of(context)!)),
         )).toList(),
       ),
     );
@@ -119,12 +165,12 @@ class SettingsScreen extends ConsumerWidget {
     }
   }
 
-  Future<void> _backup() async {
+  Future<void> _backup(BuildContext context) async {
     try {
       final dir = await getDatabasesPath();
       final file = File(p.join(dir, 'savings.sqlite'));
       if (!await file.exists()) return;
-      await SharePlus.instance.share(ShareParams(files: [XFile(file.path)], text: 'Savings App Backup'));
+      await SharePlus.instance.share(ShareParams(files: [XFile(file.path)], text: AppLocalizations.of(context)!.share_backupLabel));
     } catch (e) {
       // ignore
     }
@@ -138,7 +184,7 @@ class SettingsScreen extends ConsumerWidget {
 
       final bytes = await picked.readAsBytes();
       if (bytes.length < 16 || String.fromCharCodes(bytes.sublist(0, 16)) != 'SQLite format 3\x00') {
-        if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Invalid database file')));
+        if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.snackbar_invalidDbFile)));
         return;
       }
 
@@ -152,10 +198,10 @@ class SettingsScreen extends ConsumerWidget {
       await picked.copy(dbFile.path);
 
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Database restored. Please restart the app.')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.snackbar_dbRestored)));
       }
     } catch (e) {
-      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Restore failed: $e')));
+      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.snackbar_restoreFailed('$e'))));
     }
   }
 
@@ -169,7 +215,7 @@ class SettingsScreen extends ConsumerWidget {
     final verified = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Verify Current PIN'),
+        title: Text(AppLocalizations.of(context)!.dialog_verifyCurrentPinTitle),
         content: TextField(
           controller: pinCtrl,
           keyboardType: TextInputType.number,
@@ -178,8 +224,8 @@ class SettingsScreen extends ConsumerWidget {
           decoration: const InputDecoration(counterText: ''),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, pinCtrl.text == storedPin), child: const Text('Verify')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(AppLocalizations.of(context)!.btn_cancel)),
+          FilledButton(onPressed: () => Navigator.pop(ctx, pinCtrl.text == storedPin), child: Text(AppLocalizations.of(context)!.btn_verify)),
         ],
       ),
     );
@@ -193,7 +239,7 @@ class SettingsScreen extends ConsumerWidget {
     final result = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Set New PIN'),
+        title: Text(AppLocalizations.of(context)!.dialog_setNewPinTitle),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -202,7 +248,7 @@ class SettingsScreen extends ConsumerWidget {
               keyboardType: TextInputType.number,
               obscureText: true,
               maxLength: 4,
-              decoration: const InputDecoration(labelText: 'New PIN', counterText: ''),
+              decoration: InputDecoration(labelText: AppLocalizations.of(context)!.fieldLabel_newPin, counterText: ''),
             ),
             const SizedBox(height: 8),
             TextField(
@@ -210,28 +256,28 @@ class SettingsScreen extends ConsumerWidget {
               keyboardType: TextInputType.number,
               obscureText: true,
               maxLength: 4,
-              decoration: const InputDecoration(labelText: 'Confirm PIN', counterText: ''),
+              decoration: InputDecoration(labelText: AppLocalizations.of(context)!.fieldLabel_confirmPin, counterText: ''),
             ),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(AppLocalizations.of(context)!.btn_cancel)),
           FilledButton(
             onPressed: () {
               if (pinCtrl.text.length == 4 && pinCtrl.text == confirmCtrl.text) {
                 Navigator.pop(ctx, true);
               } else if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('PINs must match and be 4 digits')));
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.snackbar_pinValidation)));
               }
             },
-            child: const Text('Save'),
+            child: Text(AppLocalizations.of(context)!.btn_save),
           ),
         ],
       ),
     );
     if (result == true) {
       await storage.write(key: 'app_lock_pin', value: pinCtrl.text);
-      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('PIN updated')));
+      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.snackbar_pinUpdated)));
     }
   }
 }

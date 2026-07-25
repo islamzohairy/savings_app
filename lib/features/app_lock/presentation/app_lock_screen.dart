@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import '../../../l10n/app_localizations.dart';
 
 class AppLockScreen extends StatefulWidget {
   const AppLockScreen({super.key, this.onUnlocked});
@@ -45,7 +46,7 @@ class _AppLockScreenState extends State<AppLockScreen> {
                     children: [
                       Icon(Icons.lock, size: isSmall ? 48 : 64),
                       SizedBox(height: isSmall ? 16 : 24),
-                      Text(_isSetup ? 'Enter PIN' : 'Set PIN', style: Theme.of(context).textTheme.headlineSmall),
+                      Text(_isSetup ? AppLocalizations.of(context)!.appLock_enterPin : AppLocalizations.of(context)!.appLock_setPin, style: Theme.of(context).textTheme.headlineSmall),
                       SizedBox(height: isSmall ? 16 : 24),
                       if (_error != null) ...[
                         Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
@@ -150,7 +151,7 @@ class _AppLockScreenState extends State<AppLockScreen> {
         widget.onUnlocked?.call();
       } else {
         setState(() {
-          _error = 'Wrong PIN';
+          _error = AppLocalizations.of(context)!.appLock_wrongPin;
           _enteredPin = '';
         });
       }

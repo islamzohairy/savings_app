@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../core/db/database.dart';
 import '../../../core/money.dart';
+import '../../../l10n/app_localizations.dart';
 import '../application/goal_provider.dart';
 import '../../transactions/presentation/add_edit_transaction_screen.dart';
 import '../../transactions/application/transaction_provider.dart';
@@ -55,12 +56,12 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
           PopupMenuButton<String>(
             onSelected: (v) => _handleMenu(v),
             itemBuilder: (_) => [
-              const PopupMenuItem(value: 'edit', child: Text('Edit')),
-              if (status == GoalStatus.active) const PopupMenuItem(value: 'pause', child: Text('Pause')),
-              if (status == GoalStatus.paused) const PopupMenuItem(value: 'resume', child: Text('Resume')),
-              if (status != GoalStatus.completed) const PopupMenuItem(value: 'complete', child: Text('Mark Complete')),
-              const PopupMenuItem(value: 'archive', child: Text('Archive')),
-              const PopupMenuItem(value: 'delete', child: Text('Delete')),
+              PopupMenuItem(value: 'edit', child: Text(AppLocalizations.of(context)!.menu_edit)),
+              if (status == GoalStatus.active) PopupMenuItem(value: 'pause', child: Text(AppLocalizations.of(context)!.menu_pause)),
+              if (status == GoalStatus.paused) PopupMenuItem(value: 'resume', child: Text(AppLocalizations.of(context)!.menu_resume)),
+              if (status != GoalStatus.completed) PopupMenuItem(value: 'complete', child: Text(AppLocalizations.of(context)!.menu_markComplete)),
+              PopupMenuItem(value: 'archive', child: Text(AppLocalizations.of(context)!.menu_archive)),
+              PopupMenuItem(value: 'delete', child: Text(AppLocalizations.of(context)!.menu_delete)),
             ],
           ),
         ],
@@ -71,26 +72,26 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
           if (target != null) ...[
             LinearProgressIndicator(value: progress, minHeight: 12, color: color),
             const SizedBox(height: 8),
-            Text('${formatAmount(_currentAmount)} / ${formatAmount(target)}', style: Theme.of(context).textTheme.titleMedium, overflow: TextOverflow.ellipsis),
-            Text('${(progress * 100).toStringAsFixed(1)}% saved'),
+            Text(AppLocalizations.of(context)!.label_amountOfTarget(formatAmount(_currentAmount), formatAmount(target)), style: Theme.of(context).textTheme.titleMedium, overflow: TextOverflow.ellipsis),
+            Text(AppLocalizations.of(context)!.label_percentSaved((progress * 100).toStringAsFixed(1))),
             if (status == GoalStatus.completed && _currentAmount > target) ...[
               const SizedBox(height: 8),
               Text(
-                'Target reached — ${formatAmount(_currentAmount - target)} extra saved',
+                AppLocalizations.of(context)!.label_targetReachedExtra(formatAmount(_currentAmount - target)),
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.tertiary),
               ),
             ],
           ] else ...[
             FittedBox(
-              alignment: Alignment.centerLeft,
+              alignment: AlignmentDirectional.centerStart,
               fit: BoxFit.scaleDown,
               child: Text(formatAmount(_currentAmount), style: Theme.of(context).textTheme.headlineMedium),
             ),
-            const Text('Saved so far'),
+            Text(AppLocalizations.of(context)!.label_savedSoFar),
           ],
           if (_projected != null) ...[
             const SizedBox(height: 12),
-            Text('Projected completion: ${DateFormat.yMMMd().format(_projected!)}',
+            Text(AppLocalizations.of(context)!.label_projectedCompletion(DateFormat.yMMMd().format(_projected!)),
               style: Theme.of(context).textTheme.bodyLarge),
           ],
           const SizedBox(height: 24),
@@ -100,7 +101,7 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
                 child: FilledButton.icon(
                   onPressed: () => _contribute(context),
                   icon: const Icon(Icons.add),
-                  label: const Text('Contribute'),
+                  label: Text(AppLocalizations.of(context)!.btn_contribute),
                 ),
               ),
               const SizedBox(width: 12),
@@ -108,7 +109,7 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
                 child: OutlinedButton.icon(
                   onPressed: _currentAmount > 0 ? () => _withdraw(context) : null,
                   icon: const Icon(Icons.remove),
-                  label: const Text('Withdraw'),
+                  label: Text(AppLocalizations.of(context)!.btn_withdraw),
                 ),
               ),
             ],
@@ -118,11 +119,11 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
             Padding(
               padding: const EdgeInsets.only(bottom: 16),
               child: Text(
-                'Target reached — ${formatAmount(_currentAmount - (target ?? 0))} extra saved',
+                AppLocalizations.of(context)!.label_targetReachedExtra(formatAmount(_currentAmount - (target ?? 0))),
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.tertiary),
               ),
             ),
-          Text('History', style: Theme.of(context).textTheme.titleMedium),
+          Text(AppLocalizations.of(context)!.sectionTitle_history, style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
           _GoalHistory(goalId: widget.goalId, onRefresh: _load, key: ValueKey(_currentAmount)),
         ],
@@ -135,14 +136,14 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Contribute'),
+        title: Text(AppLocalizations.of(context)!.dialog_contributeTitle),
         content: TextField(
           controller: ctrl,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          decoration: InputDecoration(labelText: 'Amount', prefixText: currencyPrefix()),
+          decoration: InputDecoration(labelText: AppLocalizations.of(context)!.fieldLabel_amount, prefixText: currencyPrefix()),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(AppLocalizations.of(context)!.btn_cancel)),
           FilledButton(onPressed: () async {
             final minor = parseAmountToMinor(ctrl.text);
             if (minor <= 0) return;
@@ -152,7 +153,7 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
             refreshTransactions(ref);
             await _load();
             if (ctx.mounted) Navigator.pop(ctx);
-          }, child: const Text('Add')),
+          }, child: Text(AppLocalizations.of(context)!.btn_add)),
         ],
       ),
     );
@@ -163,14 +164,14 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Withdraw'),
+        title: Text(AppLocalizations.of(context)!.dialog_withdrawTitle),
         content: TextField(
           controller: ctrl,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          decoration: InputDecoration(labelText: 'Amount', prefixText: currencyPrefix()),
+          decoration: InputDecoration(labelText: AppLocalizations.of(context)!.fieldLabel_amount, prefixText: currencyPrefix()),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(AppLocalizations.of(context)!.btn_cancel)),
           FilledButton(onPressed: () async {
             final minor = parseAmountToMinor(ctrl.text);
             if (minor <= 0) return;
@@ -180,7 +181,7 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
             refreshTransactions(ref);
             await _load();
             if (ctx.mounted) Navigator.pop(ctx);
-          }, child: const Text('Withdraw')),
+          }, child: Text(AppLocalizations.of(context)!.btn_withdraw)),
         ],
       ),
     );
@@ -196,21 +197,21 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Edit Goal'),
+        title: Text(AppLocalizations.of(context)!.dialog_editGoalTitle),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'Name')),
+            TextField(controller: nameCtrl, decoration: InputDecoration(labelText: AppLocalizations.of(context)!.fieldLabel_name)),
             const SizedBox(height: 12),
             TextField(
               controller: targetCtrl,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              decoration: InputDecoration(labelText: 'Target amount', prefixText: currencyPrefix()),
+              decoration: InputDecoration(labelText: AppLocalizations.of(context)!.fieldLabel_targetAmount, prefixText: currencyPrefix()),
             ),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(AppLocalizations.of(context)!.btn_cancel)),
           FilledButton(onPressed: () async {
             final name = nameCtrl.text.trim();
             if (name.isEmpty) return;
@@ -224,7 +225,7 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
             refreshDashboard(ref);
             await _load();
             if (ctx.mounted) Navigator.pop(ctx);
-          }, child: const Text('Save')),
+          }, child: Text(AppLocalizations.of(context)!.btn_save)),
         ],
       ),
     );
@@ -321,7 +322,7 @@ class _GoalHistoryState extends ConsumerState<_GoalHistory> {
   @override
   Widget build(BuildContext context) {
     if (_loading && _txns.isEmpty) return const LinearProgressIndicator();
-    if (_txns.isEmpty) return const Text('No contributions yet');
+    if (_txns.isEmpty) return Text(AppLocalizations.of(context)!.emptyState_noContributions);
     return Column(
       children: [
         ..._txns.map((t) {
@@ -347,8 +348,8 @@ class _GoalHistoryState extends ConsumerState<_GoalHistory> {
             trailing: PopupMenuButton<String>(
               onSelected: (v) => _handleTxnMenu(v, t),
               itemBuilder: (_) => [
-                const PopupMenuItem(value: 'edit', child: Text('Edit')),
-                const PopupMenuItem(value: 'delete', child: Text('Delete')),
+                PopupMenuItem(value: 'edit', child: Text(AppLocalizations.of(context)!.menu_edit)),
+                PopupMenuItem(value: 'delete', child: Text(AppLocalizations.of(context)!.menu_delete)),
               ],
             ),
           );

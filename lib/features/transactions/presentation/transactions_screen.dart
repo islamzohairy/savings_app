@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../core/db/database.dart';
 import '../../../core/money.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../categories/application/category_provider.dart';
 import '../../dashboard/presentation/dashboard_screen.dart';
 import '../application/transaction_provider.dart';
@@ -89,10 +90,10 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     final filtered = _filtered;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Activity'),
+        title: Text(AppLocalizations.of(context)!.appBarTitle_activity),
         actions: [
           Semantics(
-            label: 'Manage categories',
+            label: AppLocalizations.of(context)!.semantics_manageCategories,
             child: IconButton(
               icon: const Icon(Icons.category),
               onPressed: () => context.push('/categories'),
@@ -105,7 +106,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
           _buildFilters(cats),
           Expanded(
             child: _txns.isEmpty && !_loading
-                ? const Center(child: Text('No activity'))
+                ? Center(child: Text(AppLocalizations.of(context)!.emptyState_noActivity))
                 : ListView.builder(
                     controller: _scrollCtrl,
                     itemCount: filtered.length + (_hasMore ? 1 : 0),
@@ -123,7 +124,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
         ],
       ),
       floatingActionButton: Semantics(
-        label: 'Add new activity',
+        label: AppLocalizations.of(context)!.semantics_addNewActivity,
         child: FloatingActionButton(
           onPressed: () => _add(context),
           child: const Icon(Icons.add),
@@ -141,22 +142,22 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
         runSpacing: 8,
         children: [
           FilterChip(
-            label: const Text('All'),
+            label: Text(AppLocalizations.of(context)!.filter_all),
             selected: _filterType == null,
             onSelected: (_) => setState(() => _filterType = null),
           ),
           FilterChip(
-            label: const Text('Income'),
+            label: Text(AppLocalizations.of(context)!.filter_income),
             selected: _filterType == 0,
             onSelected: (_) => setState(() => _filterType = _filterType == 0 ? null : 0),
           ),
           FilterChip(
-            label: const Text('Expense'),
+            label: Text(AppLocalizations.of(context)!.filter_expense),
             selected: _filterType == 1,
             onSelected: (_) => setState(() => _filterType = _filterType == 1 ? null : 1),
           ),
           FilterChip(
-            label: const Text('Saving'),
+            label: Text(AppLocalizations.of(context)!.filter_saving),
             selected: _filterType == 2,
             onSelected: (_) => setState(() => _filterType = _filterType == 2 ? null : 2),
           ),
@@ -174,7 +175,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     final date = DateTime.parse(t['date'] as String);
     final goalName = t['goalName'] as String?;
     final subtitle = type == TransactionType.saving
-        ? (goalName != null ? '→ $goalName' : 'Saving')
+        ? (goalName != null ? AppLocalizations.of(context)!.txnSubtitle_savingToGoal(goalName) : AppLocalizations.of(context)!.txnSubtitle_saving)
         : (t['categoryName'] as String? ?? t['note'] as String? ?? type.name);
     return ListTile(
       leading: CircleAvatar(
@@ -211,9 +212,9 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete activity?'),
+        title: Text(AppLocalizations.of(context)!.dialog_deleteActivityTitle),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(AppLocalizations.of(context)!.btn_cancel)),
           FilledButton(
             onPressed: () async {
               await ref.read(transactionRepoProvider).delete(t['id'] as int);
@@ -222,7 +223,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
               if (ctx.mounted) Navigator.pop(ctx);
               _loadInitial();
             },
-            child: const Text('Delete'),
+            child: Text(AppLocalizations.of(context)!.btn_delete),
           ),
         ],
       ),

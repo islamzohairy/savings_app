@@ -1,0 +1,220 @@
+{
+  "@@locale": "en",
+
+  "appTitle": "Savings",
+
+  "navHome": "Home",
+  "navActivity": "Activity",
+  "navReports": "Reports",
+  "navGoals": "Goals",
+  "navSettings": "Settings",
+
+  "appBarTitle_home": "Savings",
+  "appBarTitle_activity": "Activity",
+  "appBarTitle_reports": "Reports",
+  "appBarTitle_goals": "Goals",
+  "appBarTitle_settings": "Settings",
+  "appBarTitle_categories": "Categories",
+  "appBarTitle_addActivity": "Add Activity",
+  "appBarTitle_editActivity": "Edit Activity",
+
+  "label_spendableBalance": "Spendable Balance",
+  "label_inGoals": "In Goals: {amount}",
+  "@label_inGoals": {
+    "placeholders": { "amount": { "type": "String" } }
+  },
+  "label_monthSummary": "{period} Summary",
+  "@label_monthSummary": {
+    "placeholders": { "period": { "type": "String" } }
+  },
+  "label_income": "Income",
+  "label_expenses": "Expenses",
+  "label_net": "Net",
+  "label_savingsRate": "Savings Rate",
+  "label_movedToGoals": "Moved to Goals",
+  "label_unknownCategory": "Unknown",
+  "label_percent": "{value}%",
+  "@label_percent": {
+    "placeholders": { "value": { "type": "String" } }
+  },
+  "label_amountOfTarget": "{current} / {target}",
+  "@label_amountOfTarget": {
+    "placeholders": { "current": { "type": "String" }, "target": { "type": "String" } }
+  },
+  "label_percentSaved": "{percent}% saved",
+  "@label_percentSaved": {
+    "placeholders": { "percent": { "type": "String" } }
+  },
+  "label_targetReachedExtra": "Target reached — {extra} extra saved",
+  "@label_targetReachedExtra": {
+    "placeholders": { "extra": { "type": "String" } }
+  },
+  "label_savedSoFar": "Saved so far",
+  "label_projectedCompletion": "Projected completion: {date}",
+  "@label_projectedCompletion": {
+    "placeholders": { "date": { "type": "String" } }
+  },
+  "label_cycleDateRange": "{start} – {end}",
+  "@label_cycleDateRange": {
+    "placeholders": { "start": { "type": "String" }, "end": { "type": "String" } }
+  },
+
+  "toggle_monthly": "Monthly",
+  "toggle_lifetime": "Lifetime",
+
+  "sectionTitle_goals": "Goals",
+  "sectionTitle_history": "History",
+  "sectionTitle_general": "General",
+  "sectionTitle_security": "Security",
+  "sectionTitle_data": "Data",
+  "sectionTitle_about": "About",
+  "sectionTitle_expensesByCategory": "Expenses by Category",
+  "sectionTitle_savingsTrend": "Savings Trend (6 cycles)",
+  "sectionTitle_topExpenses": "Top Expenses",
+
+  "filter_all": "All",
+  "filter_income": "Income",
+  "filter_expense": "Expense",
+  "filter_saving": "Saving",
+
+  "type_income": "Income",
+  "type_expense": "Expense",
+  "type_saving": "Saving",
+
+  "emptyState_startTracking": "Start tracking your savings!",
+  "emptyState_noActivity": "No activity",
+  "emptyState_noGoals": "No goals yet",
+  "emptyState_noCategories": "No categories",
+  "emptyState_noContributions": "No contributions yet",
+  "emptyState_noDataForCycle": "No data for this cycle",
+
+  "error_generic": "Error: {error}",
+  "@error_generic": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+
+  "btn_add": "Add",
+  "btn_update": "Update",
+  "btn_save": "Save",
+  "btn_delete": "Delete",
+  "btn_cancel": "Cancel",
+  "btn_create": "Create",
+  "btn_verify": "Verify",
+  "btn_back": "Back",
+  "btn_next": "Next",
+  "btn_skip": "Skip",
+  "btn_getStarted": "Get Started",
+  "btn_startSaving": "Start Saving",
+  "btn_loadMore": "Load more",
+  "btn_contribute": "Contribute",
+  "btn_withdraw": "Withdraw",
+
+  "menu_edit": "Edit",
+  "menu_delete": "Delete",
+  "menu_archive": "Archive",
+  "menu_unarchive": "Unarchive",
+  "menu_pause": "Pause",
+  "menu_resume": "Resume",
+  "menu_markComplete": "Mark Complete",
+
+  "fieldLabel_amount": "Amount",
+  "fieldLabel_name": "Name",
+  "fieldLabel_type": "Type",
+  "fieldLabel_date": "Date",
+  "fieldLabel_noteOptional": "Note (optional)",
+  "fieldLabel_source": "Source",
+  "fieldLabel_category": "Category",
+  "fieldLabel_goal": "Goal",
+  "fieldLabel_targetAmount": "Target amount",
+  "fieldLabel_targetAmountOptional": "Target amount (optional)",
+  "fieldLabel_goalName": "Goal name",
+  "fieldLabel_currentBalance": "Current savings balance",
+  "fieldLabel_newPin": "New PIN",
+  "fieldLabel_confirmPin": "Confirm PIN",
+
+  "dialog_deleteActivityTitle": "Delete activity?",
+  "dialog_deleteCategoryTitle": "Delete category?",
+  "dialog_deleteCategoryConfirm": "Are you sure you want to delete this category?",
+  "dialog_addCategoryTitle": "Add Category",
+  "dialog_editCategoryTitle": "Edit Category",
+  "dialog_newGoalTitle": "New Goal",
+  "dialog_editGoalTitle": "Edit Goal",
+  "dialog_contributeTitle": "Contribute",
+  "dialog_withdrawTitle": "Withdraw",
+  "dialog_currencyTitle": "Currency",
+  "dialog_themeTitle": "Theme",
+  "dialog_verifyCurrentPinTitle": "Verify Current PIN",
+  "dialog_setNewPinTitle": "Set New PIN",
+
+  "categoryInUseWarning": "{count, plural, =0{Not used in any transactions} one{Used in 1 transaction} two{Used in 2 transactions} few{Used in {count} transactions} many{Used in {count} transactions} other{Used in {count} transactions}}",
+  "@categoryInUseWarning": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+
+  "categoryType_income": "INCOME",
+  "categoryType_expense": "EXPENSE",
+
+  "goalStatus_active": "Active",
+  "goalStatus_paused": "Paused",
+  "goalStatus_completed": "Completed",
+  "goalStatus_archived": "Archived",
+
+  "theme_system": "System",
+  "theme_light": "Light",
+  "theme_dark": "Dark",
+
+  "setting_language": "Language",
+  "setting_languageSubtitle": "System default",
+  "dialog_languageTitle": "Language",
+  "lang_system": "System",
+  "lang_en": "English",
+  "lang_ar": "العربية",
+  "setting_currency": "Currency",
+  "setting_theme": "Theme",
+  "setting_appLock": "App Lock",
+  "setting_appLockSubtitle": "Require PIN on launch",
+  "setting_changePin": "Change PIN",
+  "setting_changePinSubtitle": "Update your app lock PIN",
+  "setting_backup": "Backup",
+  "setting_backupSubtitle": "Export database file",
+  "setting_restore": "Restore",
+  "setting_restoreSubtitle": "Import database file",
+  "setting_appName": "Savings App",
+  "setting_appVersion": "Version 1.0.0",
+
+  "share_backupLabel": "Savings App Backup",
+
+  "snackbar_invalidDbFile": "Invalid database file",
+  "snackbar_dbRestored": "Database restored. Please restart the app.",
+  "snackbar_restoreFailed": "Restore failed: {error}",
+  "@snackbar_restoreFailed": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "snackbar_pinValidation": "PINs must match and be 4 digits",
+  "snackbar_pinUpdated": "PIN updated",
+
+  "txnSubtitle_savingToGoal": "{goalName}",
+  "@txnSubtitle_savingToGoal": {
+    "placeholders": { "goalName": { "type": "String" } }
+  },
+  "txnSubtitle_saving": "Saving",
+
+  "semantics_addNewActivity": "Add new activity",
+  "semantics_manageCategories": "Manage categories",
+  "semantics_addNewCategory": "Add new category",
+
+  "onboarding_welcomeTitle": "Welcome to Savings",
+  "onboarding_welcomeBody": "Track your savings, see where your money goes.",
+  "onboarding_currencyTitle": "Currency",
+  "onboarding_balanceTitle": "Starting Balance (optional)",
+  "onboarding_goalTitle": "First Goal (optional)",
+  "onboarding_doneTitle": "All Set!",
+  "onboarding_doneBody": "You're ready to start tracking your savings.",
+
+  "note_startingBalance": "Starting balance",
+  "note_initialContribution": "Initial contribution",
+
+  "appLock_enterPin": "Enter PIN",
+  "appLock_setPin": "Set PIN",
+  "appLock_wrongPin": "Wrong PIN"
+}

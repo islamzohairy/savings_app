@@ -11,7 +11,7 @@ class SettingsNotifier extends Notifier<Map<String, String>> {
 
   Future<void> load() async {
     final db = AppDatabase.instance;
-    final keys = ['currencyCode', 'themeMode', 'monthStartDay', 'firstDayOfWeek', 'appLockEnabled', 'hasCompletedOnboarding'];
+    final keys = ['currencyCode', 'themeMode', 'monthStartDay', 'firstDayOfWeek', 'appLockEnabled', 'hasCompletedOnboarding', 'languageCode'];
     final map = <String, String>{};
     for (final k in keys) {
       final v = await db.getSetting(k);
@@ -34,6 +34,14 @@ class SettingsNotifier extends Notifier<Map<String, String>> {
       case 'light': return ThemeMode.light;
       case 'dark': return ThemeMode.dark;
       default: return ThemeMode.system;
+    }
+  }
+
+  Locale? get resolvedLocale {
+    switch (state['languageCode']) {
+      case 'en': return const Locale('en');
+      case 'ar': return const Locale('ar');
+      default: return null;
     }
   }
 }

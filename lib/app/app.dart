@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/theme.dart';
 import '../core/settings_provider.dart';
 import '../core/db/database.dart';
+import '../l10n/app_localizations.dart';
 import '../features/onboarding/presentation/onboarding_screen.dart';
 import '../features/app_lock/presentation/app_lock_screen.dart';
 import 'router.dart';
@@ -14,11 +15,15 @@ class SavingsApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(settingsProvider);
+    final locale = ref.read(settingsProvider.notifier).resolvedLocale;
     return MaterialApp(
       title: 'Savings',
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
       themeMode: _resolveThemeMode(settings['themeMode']),
+      locale: locale,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       home: const _Gate(),
     );
   }
@@ -102,11 +107,16 @@ class _MainApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
-    final themeMode = ref.watch(settingsProvider.select((s) => s['themeMode']));
+    final settings = ref.watch(settingsProvider);
+    final themeMode = settings['themeMode'];
+    final locale = ref.read(settingsProvider.notifier).resolvedLocale;
     return MaterialApp.router(
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
       themeMode: _resolveThemeMode(themeMode),
+      locale: locale,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       routerConfig: router,
     );
   }

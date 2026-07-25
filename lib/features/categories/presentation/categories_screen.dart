@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/db/database.dart';
+import '../../../l10n/app_localizations.dart';
 import '../application/category_provider.dart';
 
 class CategoriesScreen extends ConsumerWidget {
@@ -10,12 +11,12 @@ class CategoriesScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final cats = ref.watch(categoriesProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('Categories')),
+      appBar: AppBar(title: Text(AppLocalizations.of(context)!.appBarTitle_categories)),
       body: cats.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Error: $e')),
+        error: (e, _) => Center(child: Text(AppLocalizations.of(context)!.error_generic('$e'))),
         data: (list) {
-          if (list.isEmpty) return const Center(child: Text('No categories'));
+          if (list.isEmpty) return Center(child: Text(AppLocalizations.of(context)!.emptyState_noCategories));
           return ListView.builder(
             padding: const EdgeInsets.only(bottom: 80),
             itemCount: list.length,
@@ -27,14 +28,14 @@ class CategoriesScreen extends ConsumerWidget {
               return ListTile(
                 leading: CircleAvatar(backgroundColor: color, child: Icon(_iconFor(c['iconKey'] as String), color: Theme.of(context).colorScheme.onPrimary, size: 20)),
                 title: Text(c['name'] as String, style: archived ? const TextStyle(decoration: TextDecoration.lineThrough) : null),
-                subtitle: Text(type.name.toUpperCase()),
+                subtitle: Text(type == TransactionType.income ? AppLocalizations.of(context)!.categoryType_income : AppLocalizations.of(context)!.categoryType_expense),
                 trailing: PopupMenuButton<String>(
                   onSelected: (v) => _handleMenu(ref, context, c, v),
                   itemBuilder: (_) => [
-                    if (archived) const PopupMenuItem(value: 'unarchive', child: Text('Unarchive')),
-                    if (!archived) const PopupMenuItem(value: 'archive', child: Text('Archive')),
-                    const PopupMenuItem(value: 'edit', child: Text('Edit')),
-                    const PopupMenuItem(value: 'delete', child: Text('Delete')),
+                    if (archived) PopupMenuItem(value: 'unarchive', child: Text(AppLocalizations.of(context)!.menu_unarchive)),
+                    if (!archived) PopupMenuItem(value: 'archive', child: Text(AppLocalizations.of(context)!.menu_archive)),
+                    PopupMenuItem(value: 'edit', child: Text(AppLocalizations.of(context)!.menu_edit)),
+                    PopupMenuItem(value: 'delete', child: Text(AppLocalizations.of(context)!.menu_delete)),
                   ],
                 ),
               );
@@ -43,7 +44,7 @@ class CategoriesScreen extends ConsumerWidget {
         },
       ),
       floatingActionButton: Semantics(
-        label: 'Add new category',
+        label: AppLocalizations.of(context)!.semantics_addNewCategory,
         child: FloatingActionButton(
           onPressed: () => _showAddDialog(context, ref),
           child: const Icon(Icons.add),
@@ -67,13 +68,13 @@ class CategoriesScreen extends ConsumerWidget {
           final confirmed = await showDialog<bool>(
             context: context,
             builder: (ctx) => AlertDialog(
-              title: const Text('Delete category?'),
+              title: Text(AppLocalizations.of(context)!.dialog_deleteCategoryTitle),
               content: Text(count > 0
-                  ? 'This category has $count transactions. Deleting it will remove the category from those records. Continue?'
-                  : 'Are you sure you want to delete this category?'),
+                  ? AppLocalizations.of(context)!.categoryInUseWarning(count)
+                  : AppLocalizations.of(context)!.dialog_deleteCategoryConfirm),
               actions: [
-                TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-                FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Delete')),
+                TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(AppLocalizations.of(context)!.btn_cancel)),
+                FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text(AppLocalizations.of(context)!.btn_delete)),
               ],
             ),
           );
@@ -92,22 +93,22 @@ class CategoriesScreen extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Add Category'),
+        title: Text(AppLocalizations.of(context)!.dialog_addCategoryTitle),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'Name')),
+            TextField(controller: nameCtrl, decoration: InputDecoration(labelText: AppLocalizations.of(context)!.fieldLabel_name)),
             const SizedBox(height: 8),
             DropdownButtonFormField<TransactionType>(
               initialValue: type,
               items: [TransactionType.income, TransactionType.expense].map((t) => DropdownMenuItem(value: t, child: Text(t.name))).toList(),
               onChanged: (v) => type = v ?? type,
-              decoration: const InputDecoration(labelText: 'Type'),
+              decoration: InputDecoration(labelText: AppLocalizations.of(context)!.fieldLabel_type),
             ),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(AppLocalizations.of(context)!.btn_cancel)),
           FilledButton(onPressed: () async {
             if (nameCtrl.text.trim().isEmpty) return;
             await ref.read(categoryRepoProvider).insert({
@@ -121,7 +122,7 @@ class CategoriesScreen extends ConsumerWidget {
             });
             refreshCategories(ref);
             if (ctx.mounted) Navigator.pop(ctx);
-          }, child: const Text('Add')),
+          }, child: Text(AppLocalizations.of(context)!.btn_add)),
         ],
       ),
     );
@@ -132,10 +133,10 @@ class CategoriesScreen extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Edit Category'),
-        content: TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'Name')),
+        title: Text(AppLocalizations.of(context)!.dialog_editCategoryTitle),
+        content: TextField(controller: nameCtrl, decoration: InputDecoration(labelText: AppLocalizations.of(context)!.fieldLabel_name)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(AppLocalizations.of(context)!.btn_cancel)),
           FilledButton(onPressed: () async {
             if (nameCtrl.text.trim().isEmpty) return;
             await ref.read(categoryRepoProvider).update(cat['id'] as int, {
@@ -143,7 +144,7 @@ class CategoriesScreen extends ConsumerWidget {
             });
             refreshCategories(ref);
             if (ctx.mounted) Navigator.pop(ctx);
-          }, child: const Text('Save')),
+          }, child: Text(AppLocalizations.of(context)!.btn_save)),
         ],
       ),
     );

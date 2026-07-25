@@ -4,6 +4,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 import '../../../core/date_utils.dart';
 import '../../../core/money.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../transactions/application/transaction_provider.dart';
 
 class ReportsScreen extends ConsumerStatefulWidget {
@@ -97,7 +98,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Reports')),
+      appBar: AppBar(title: Text(AppLocalizations.of(context)!.appBarTitle_reports)),
       body: FutureBuilder<_ReportData>(
         future: _future,
         builder: (ctx, snap) {
@@ -116,24 +117,24 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
               _SummaryCard(income: d.income, expenses: d.expenses, net: d.net, rate: d.rate),
               const SizedBox(height: 16),
               if (d.breakdown.isNotEmpty) ...[
-                Text('Expenses by Category', style: Theme.of(context).textTheme.titleMedium),
+                Text(AppLocalizations.of(context)!.sectionTitle_expensesByCategory, style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: 8),
                 _CategoryChart(data: d.breakdown),
               ],
               const SizedBox(height: 16),
               if (d.trend.isNotEmpty) ...[
-                Text('Savings Trend (6 cycles)', style: Theme.of(context).textTheme.titleMedium),
+                Text(AppLocalizations.of(context)!.sectionTitle_savingsTrend, style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: 8),
                 _TrendChart(data: d.trend),
               ],
               const SizedBox(height: 16),
               if (d.topExpenses.isNotEmpty) ...[
-                Text('Top Expenses', style: Theme.of(context).textTheme.titleMedium),
+                Text(AppLocalizations.of(context)!.sectionTitle_topExpenses, style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: 8),
                 ...d.topExpenses.map((t) => ListTile(
                   dense: true,
                   title: Text(formatAmount(t['amountMinor'] as int)),
-                  subtitle: Text(t['categoryName'] as String? ?? 'Unknown'),
+                  subtitle: Text(t['categoryName'] as String? ?? AppLocalizations.of(context)!.label_unknownCategory),
                   trailing: Text(DateFormat.MMMd().format(DateTime.parse(t['date'] as String))),
                 )),
                 if (_hasMoreTopExpenses)
@@ -146,14 +147,14 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                               await _loadMoreTopExpenses();
                               setState(() {});
                             },
-                            child: const Text('Load more'),
+                            child: Text(AppLocalizations.of(context)!.btn_loadMore),
                           ),
                   ),
               ],
               if (d.breakdown.isEmpty && d.trend.isEmpty && d.topExpenses.isEmpty)
                 Center(child: Padding(
                   padding: const EdgeInsets.all(32),
-                  child: Text('No data for this cycle', style: Theme.of(context).textTheme.bodyLarge),
+                  child: Text(AppLocalizations.of(context)!.emptyState_noDataForCycle, style: Theme.of(context).textTheme.bodyLarge),
                 )),
             ],
           );
@@ -186,7 +187,7 @@ class _MonthPicker extends StatelessWidget {
         IconButton(onPressed: onPrev, icon: const Icon(Icons.chevron_left)),
         Flexible(
           child: Text(
-            '${DateFormat('MMM d').format(cycleStart)} – ${DateFormat('MMM d, yyyy').format(cycleEnd)}',
+            AppLocalizations.of(context)!.label_cycleDateRange(DateFormat('MMM d').format(cycleStart), DateFormat('MMM d, yyyy').format(cycleEnd)),
             style: Theme.of(context).textTheme.titleMedium,
             overflow: TextOverflow.ellipsis,
           ),
@@ -215,16 +216,16 @@ class _SummaryCard extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _Stat('Income', income, Theme.of(context).colorScheme.primary),
-                _Stat('Expenses', expenses, Theme.of(context).colorScheme.error),
-                _Stat('Net', net, Theme.of(context).colorScheme.tertiary),
+                _Stat(AppLocalizations.of(context)!.label_income, income, Theme.of(context).colorScheme.primary),
+                _Stat(AppLocalizations.of(context)!.label_expenses, expenses, Theme.of(context).colorScheme.error),
+                _Stat(AppLocalizations.of(context)!.label_net, net, Theme.of(context).colorScheme.tertiary),
               ],
             ),
             const Divider(height: 24),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Savings Rate'),
+                Text(AppLocalizations.of(context)!.label_savingsRate),
                 Text('${rate.toStringAsFixed(1)}%', style: Theme.of(context).textTheme.titleMedium),
               ],
             ),
