@@ -133,30 +133,28 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
   }
 
   Widget _buildFilters(AsyncValue<List<Map<String, dynamic>>> cats) {
-    return SizedBox(
-      height: 50,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      child: Wrap(
+        alignment: WrapAlignment.center,
+        spacing: 8,
+        runSpacing: 8,
         children: [
           FilterChip(
             label: const Text('All'),
             selected: _filterType == null,
             onSelected: (_) => setState(() => _filterType = null),
           ),
-          const SizedBox(width: 8),
           FilterChip(
             label: const Text('Income'),
             selected: _filterType == 0,
             onSelected: (_) => setState(() => _filterType = _filterType == 0 ? null : 0),
           ),
-          const SizedBox(width: 8),
           FilterChip(
             label: const Text('Expense'),
             selected: _filterType == 1,
             onSelected: (_) => setState(() => _filterType = _filterType == 1 ? null : 1),
           ),
-          const SizedBox(width: 8),
           FilterChip(
             label: const Text('Saving'),
             selected: _filterType == 2,
