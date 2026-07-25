@@ -177,7 +177,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     final goalName = t['goalName'] as String?;
     final subtitle = type == TransactionType.saving
         ? (goalName != null ? AppLocalizations.of(context)!.txnSubtitle_savingToGoal(goalName) : AppLocalizations.of(context)!.txnSubtitle_saving)
-        : (t['categoryName'] != null ? displayCategoryName(t['categoryName'] as String, Localizations.localeOf(context).languageCode) : t['note'] as String? ?? type.name);
+        : (t['categoryName'] != null ? displayCategoryName(t['categoryName'] as String, Localizations.localeOf(context).languageCode) : t['note'] as String? ?? (type == TransactionType.income ? AppLocalizations.of(context)!.type_income : AppLocalizations.of(context)!.type_expense));
     return ListTile(
       leading: CircleAvatar(
         backgroundColor: color.withAlpha(30),

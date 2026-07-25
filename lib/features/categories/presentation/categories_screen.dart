@@ -102,7 +102,7 @@ class CategoriesScreen extends ConsumerWidget {
             const SizedBox(height: 8),
             DropdownButtonFormField<TransactionType>(
               initialValue: type,
-              items: [TransactionType.income, TransactionType.expense].map((t) => DropdownMenuItem(value: t, child: Text(t.name))).toList(),
+              items: [TransactionType.income, TransactionType.expense].map((t) => DropdownMenuItem(value: t, child: Text(t == TransactionType.income ? AppLocalizations.of(context)!.categoryType_income : AppLocalizations.of(context)!.categoryType_expense))).toList(),
               onChanged: (v) => type = v ?? type,
               decoration: InputDecoration(labelText: AppLocalizations.of(context)!.fieldLabel_type),
             ),
