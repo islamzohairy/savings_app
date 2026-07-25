@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../core/db/database.dart';
 import '../../../core/money.dart';
+import '../../../core/seed_categories.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../categories/application/category_provider.dart';
 import '../../dashboard/presentation/dashboard_screen.dart';
@@ -176,7 +177,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     final goalName = t['goalName'] as String?;
     final subtitle = type == TransactionType.saving
         ? (goalName != null ? AppLocalizations.of(context)!.txnSubtitle_savingToGoal(goalName) : AppLocalizations.of(context)!.txnSubtitle_saving)
-        : (t['categoryName'] as String? ?? t['note'] as String? ?? type.name);
+        : (t['categoryName'] != null ? displayCategoryName(t['categoryName'] as String, Localizations.localeOf(context).languageCode) : t['note'] as String? ?? type.name);
     return ListTile(
       leading: CircleAvatar(
         backgroundColor: color.withAlpha(30),

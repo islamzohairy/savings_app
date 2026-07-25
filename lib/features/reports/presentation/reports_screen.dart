@@ -4,6 +4,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 import '../../../core/date_utils.dart';
 import '../../../core/money.dart';
+import '../../../core/seed_categories.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../transactions/application/transaction_provider.dart';
 
@@ -134,7 +135,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 ...d.topExpenses.map((t) => ListTile(
                   dense: true,
                   title: Text(formatAmount(t['amountMinor'] as int)),
-                  subtitle: Text(t['categoryName'] as String? ?? AppLocalizations.of(context)!.label_unknownCategory),
+                  subtitle: Text(t['categoryName'] != null ? displayCategoryName(t['categoryName'] as String, Localizations.localeOf(context).languageCode) : AppLocalizations.of(context)!.label_unknownCategory),
                   trailing: Text(DateFormat.MMMd().format(DateTime.parse(t['date'] as String))),
                 )),
                 if (_hasMoreTopExpenses)
@@ -299,7 +300,7 @@ class _CategoryChart extends StatelessWidget {
               children: [
                 Container(width: 12, height: 12, color: color),
                 const SizedBox(width: 8),
-                Expanded(child: Text(d['name'] as String)),
+                Expanded(child: Text(displayCategoryName(d['name'] as String, Localizations.localeOf(context).languageCode))),
                 Text(formatAmount(amount)),
                 const SizedBox(width: 8),
                 Text('${pct.toStringAsFixed(1)}%', style: Theme.of(context).textTheme.bodySmall),

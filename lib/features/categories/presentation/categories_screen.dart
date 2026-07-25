@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/db/database.dart';
+import '../../../core/seed_categories.dart';
 import '../../../l10n/app_localizations.dart';
 import '../application/category_provider.dart';
 
@@ -27,7 +28,7 @@ class CategoriesScreen extends ConsumerWidget {
               final archived = (c['isArchived'] as int) == 1;
               return ListTile(
                 leading: CircleAvatar(backgroundColor: color, child: Icon(_iconFor(c['iconKey'] as String), color: Theme.of(context).colorScheme.onPrimary, size: 20)),
-                title: Text(c['name'] as String, style: archived ? const TextStyle(decoration: TextDecoration.lineThrough) : null),
+                title: Text(displayCategoryName(c['name'] as String, Localizations.localeOf(context).languageCode), style: archived ? const TextStyle(decoration: TextDecoration.lineThrough) : null),
                 subtitle: Text(type == TransactionType.income ? AppLocalizations.of(context)!.categoryType_income : AppLocalizations.of(context)!.categoryType_expense),
                 trailing: PopupMenuButton<String>(
                   onSelected: (v) => _handleMenu(ref, context, c, v),

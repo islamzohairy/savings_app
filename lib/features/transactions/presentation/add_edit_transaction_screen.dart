@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../core/db/database.dart';
 import '../../../core/money.dart';
+import '../../../core/seed_categories.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../categories/application/category_provider.dart';
 import '../../goals/application/goal_provider.dart';
@@ -117,7 +118,7 @@ class _AddEditTransactionScreenState extends ConsumerState<AddEditTransactionScr
                   decoration: InputDecoration(labelText: sourceLabel),
                   items: active.map((c) => DropdownMenuItem(
                     value: c['id'] as int,
-                    child: Text(c['name'] as String),
+                    child: Text(displayCategoryName(c['name'] as String, Localizations.localeOf(context).languageCode)),
                   )).toList(),
                   onChanged: (v) => setState(() => _categoryId = v),
                 );
