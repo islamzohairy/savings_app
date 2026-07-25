@@ -92,6 +92,7 @@
   "@error_generic": {
     "placeholders": { "error": { "type": "String" } }
   },
+  "error_insufficientBalance": "Insufficient balance",
 
   "btn_add": "Add",
   "btn_update": "Update",
@@ -133,6 +134,10 @@
   "fieldLabel_confirmPin": "Confirm PIN",
 
   "dialog_deleteActivityTitle": "Delete activity?",
+  "dialog_deleteGoalTitle": "Delete goal?",
+  "dialog_deleteGoalConfirm": "All contribution history will be lost.",
+  "dialog_deleteEntryTitle": "Delete entry?",
+  "dialog_deleteEntryConfirm": "This will affect your goal balance.",
   "dialog_deleteCategoryTitle": "Delete category?",
   "dialog_deleteCategoryConfirm": "Are you sure you want to delete this category?",
   "dialog_addCategoryTitle": "Add Category",
@@ -203,6 +208,7 @@
   "semantics_manageCategories": "Manage categories",
   "semantics_addNewCategory": "Add new category",
 
+  "onboarding_languageTitle": "Language",
   "onboarding_welcomeTitle": "Welcome to Savings",
   "onboarding_welcomeBody": "Track your savings, see where your money goes.",
   "onboarding_currencyTitle": "Currency",

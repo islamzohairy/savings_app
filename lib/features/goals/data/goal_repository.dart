@@ -90,7 +90,7 @@ class GoalRepository {
     if (target != null && target > 0 && status == 0) {
       final after = await currentAmount(goalId);
       if (after >= target) {
-        await db.update('goals', {'status': 1}, where: 'id = ?', whereArgs: [goalId]);
+        await db.update('goals', {'status': 2}, where: 'id = ?', whereArgs: [goalId]);
       }
     }
   }

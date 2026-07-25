@@ -92,6 +92,7 @@
   "@error_generic": {
     "placeholders": { "error": { "type": "String" } }
   },
+  "error_insufficientBalance": "الرصيد غير كافٍ",
 
   "btn_add": "إضافة",
   "btn_update": "تحديث",
@@ -133,6 +134,10 @@
   "fieldLabel_confirmPin": "تأكيد الرمز السري",
 
   "dialog_deleteActivityTitle": "حذف المعاملة؟",
+  "dialog_deleteGoalTitle": "حذف الهدف؟",
+  "dialog_deleteGoalConfirm": "ستُفقد جميع سجلات الإيداعات.",
+  "dialog_deleteEntryTitle": "حذف القيد؟",
+  "dialog_deleteEntryConfirm": "سيؤثر هذا على رصيد الهدف.",
   "dialog_deleteCategoryTitle": "حذف الفئة؟",
   "dialog_deleteCategoryConfirm": "هل أنت متأكد من حذف هذه الفئة؟",
   "dialog_addCategoryTitle": "إضافة فئة",
@@ -203,6 +208,7 @@
   "semantics_manageCategories": "إدارة الفئات",
   "semantics_addNewCategory": "إضافة فئة جديدة",
 
+  "onboarding_languageTitle": "اللغة",
   "onboarding_welcomeTitle": "مرحباً بك في المدخرات",
   "onboarding_welcomeBody": "تتبع مدخراتك وشاهد أين يذهب مالك.",
   "onboarding_currencyTitle": "العملة",

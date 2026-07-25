@@ -264,7 +264,7 @@ void main() {
       expect(await goalRepo.currentAmount(goalId), 1100, reason: 'full contribution amount must be recorded');
 
       final goal = await goalRepo.getById(goalId);
-      expect(goal!['status'], 1, reason: 'goal should be auto-completed on overfunding');
+      expect(goal!['status'], 2, reason: 'goal should be auto-completed on overfunding');
     });
 
     test('withdrawal reduces goal balance', () async {

@@ -177,6 +177,12 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
           FilledButton(onPressed: () async {
             final minor = parseAmountToMinor(ctrl.text);
             if (minor <= 0) return;
+            if (minor > _currentAmount) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(AppLocalizations.of(context)!.error_insufficientBalance)),
+              );
+              return;
+            }
             await ref.read(goalRepoProvider).withdraw(widget.goalId, minor);
             refreshGoals(ref);
             refreshDashboard(ref);
@@ -244,6 +250,18 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
       case 'complete': await repo.update(id, {'status': GoalStatus.completed.index});
       case 'archive': await repo.update(id, {'status': GoalStatus.archived.index});
       case 'delete':
+        final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: Text(AppLocalizations.of(context)!.dialog_deleteGoalTitle),
+            content: Text(AppLocalizations.of(context)!.dialog_deleteGoalConfirm),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(AppLocalizations.of(context)!.btn_cancel)),
+              FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text(AppLocalizations.of(context)!.btn_delete)),
+            ],
+          ),
+        );
+        if (confirmed != true) return;
         await repo.delete(id);
         refreshGoals(ref);
         refreshDashboard(ref);
@@ -368,6 +386,18 @@ class _GoalHistoryState extends ConsumerState<_GoalHistory> {
 
   void _handleTxnMenu(String action, Map<String, dynamic> t) async {
     if (action == 'delete') {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text(AppLocalizations.of(context)!.dialog_deleteEntryTitle),
+          content: Text(AppLocalizations.of(context)!.dialog_deleteEntryConfirm),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(AppLocalizations.of(context)!.btn_cancel)),
+            FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text(AppLocalizations.of(context)!.btn_delete)),
+          ],
+        ),
+      );
+      if (confirmed != true) return;
       await ref.read(transactionRepoProvider).delete(t['id'] as int);
       refreshTransactions(ref);
       refreshDashboard(ref);

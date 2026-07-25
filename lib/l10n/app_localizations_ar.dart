@@ -192,6 +192,9 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
+  String get error_insufficientBalance => 'الرصيد غير كافٍ';
+
+  @override
   String get btn_add => 'إضافة';
 
   @override
@@ -301,6 +304,18 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get dialog_deleteActivityTitle => 'حذف المعاملة؟';
+
+  @override
+  String get dialog_deleteGoalTitle => 'حذف الهدف؟';
+
+  @override
+  String get dialog_deleteGoalConfirm => 'ستُفقد جميع سجلات الإيداعات.';
+
+  @override
+  String get dialog_deleteEntryTitle => 'حذف القيد؟';
+
+  @override
+  String get dialog_deleteEntryConfirm => 'سيؤثر هذا على رصيد الهدف.';
 
   @override
   String get dialog_deleteCategoryTitle => 'حذف الفئة؟';
@@ -472,6 +487,9 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get semantics_addNewCategory => 'إضافة فئة جديدة';
+
+  @override
+  String get onboarding_languageTitle => 'اللغة';
 
   @override
   String get onboarding_welcomeTitle => 'مرحباً بك في المدخرات';

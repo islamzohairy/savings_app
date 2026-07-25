@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/db/database.dart';
 import '../../../core/money.dart';
+import '../../../core/settings_provider.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../transactions/application/transaction_provider.dart';
 
@@ -16,6 +17,7 @@ class OnboardingScreen extends ConsumerStatefulWidget {
 class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final _pageCtrl = PageController();
   int _step = 0;
+  String _language = 'system';
   String _currency = 'USD';
   final _balanceCtrl = TextEditingController();
   final _goalNameCtrl = TextEditingController();
@@ -40,6 +42,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           controller: _pageCtrl,
           physics: const NeverScrollableScrollPhysics(),
           children: [
+            _languageStep(),
             _welcomeStep(),
             _currencyStep(),
             _balanceStep(),
@@ -51,6 +54,49 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     );
   }
 
+  Widget _languageStep() => _stepShell(
+    title: AppLocalizations.of(context)!.onboarding_languageTitle,
+    child: Column(
+      children: [
+        const SizedBox(height: 32),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            ChoiceChip(
+              label: Text(AppLocalizations.of(context)!.lang_system),
+              selected: _language == 'system',
+              onSelected: (_) => _setLanguage('system'),
+            ),
+            ChoiceChip(
+              label: Text(AppLocalizations.of(context)!.lang_en),
+              selected: _language == 'en',
+              onSelected: (_) => _setLanguage('en'),
+            ),
+            ChoiceChip(
+              label: Text(AppLocalizations.of(context)!.lang_ar),
+              selected: _language == 'ar',
+              onSelected: (_) => _setLanguage('ar'),
+            ),
+          ],
+        ),
+        const Spacer(),
+        Row(
+          children: [
+            const Spacer(),
+            FilledButton(onPressed: _next, child: Text(AppLocalizations.of(context)!.btn_next)),
+          ],
+        ),
+        const SizedBox(height: 16),
+      ],
+    ),
+  );
+
+  void _setLanguage(String code) {
+    setState(() => _language = code);
+    ref.read(settingsProvider.notifier).set('languageCode', code);
+  }
+
   Widget _welcomeStep() => _stepShell(
     title: AppLocalizations.of(context)!.onboarding_welcomeTitle,
     child: Column(
@@ -60,7 +106,13 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         const SizedBox(height: 24),
         Text(AppLocalizations.of(context)!.onboarding_welcomeBody, style: Theme.of(context).textTheme.bodyLarge, textAlign: TextAlign.center),
         const Spacer(),
-        FilledButton(onPressed: _next, child: Text(AppLocalizations.of(context)!.btn_getStarted)),
+        Row(
+          children: [
+            TextButton(onPressed: _prev, child: Text(AppLocalizations.of(context)!.btn_back)),
+            const Spacer(),
+            FilledButton(onPressed: _next, child: Text(AppLocalizations.of(context)!.btn_getStarted)),
+          ],
+        ),
         const SizedBox(height: 16),
       ],
     ),
@@ -176,7 +228,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   void _next() {
-    if (_step < 4) {
+    if (_step < 5) {
       _pageCtrl.nextPage(duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
       _step++;
     }
@@ -191,7 +243,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   Future<void> _finish() async {
     final db = AppDatabase.instance;
-    await db.setSetting('currencyCode', _currency);
+    await ref.read(settingsProvider.notifier).set('currencyCode', _currency);
 
     final balanceMinor = parseAmountToMinor(_balanceCtrl.text);
     if (balanceMinor > 0) {

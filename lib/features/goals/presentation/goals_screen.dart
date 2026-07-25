@@ -106,7 +106,7 @@ class _GoalTile extends ConsumerWidget {
           leading: CircleAvatar(backgroundColor: color, child: Icon(Icons.flag, color: Theme.of(context).colorScheme.onPrimary, size: 20)),
           title: Text(goal['name'] as String),
           subtitle: target != null
-              ? Text('${formatAmount(current)} / ${formatAmount(target)}')
+              ? Text(AppLocalizations.of(context)!.label_amountOfTarget(formatAmount(current), formatAmount(target)))
               : Text(formatAmount(current)),
           trailing: status == GoalStatus.active
               ? SizedBox(
@@ -115,7 +115,7 @@ class _GoalTile extends ConsumerWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       LinearProgressIndicator(value: progress),
-                      Text('${(progress * 100).toInt()}%', style: Theme.of(context).textTheme.bodySmall),
+                      Text(AppLocalizations.of(context)!.label_percent('${(progress * 100).toInt()}'), style: Theme.of(context).textTheme.bodySmall),
                     ],
                   ),
                 )

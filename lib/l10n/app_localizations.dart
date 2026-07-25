@@ -428,6 +428,12 @@ abstract class AppLocalizations {
   /// **'Error: {error}'**
   String error_generic(String error);
 
+  /// No description provided for @error_insufficientBalance.
+  ///
+  /// In en, this message translates to:
+  /// **'Insufficient balance'**
+  String get error_insufficientBalance;
+
   /// No description provided for @btn_add.
   ///
   /// In en, this message translates to:
@@ -649,6 +655,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Delete activity?'**
   String get dialog_deleteActivityTitle;
+
+  /// No description provided for @dialog_deleteGoalTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete goal?'**
+  String get dialog_deleteGoalTitle;
+
+  /// No description provided for @dialog_deleteGoalConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'All contribution history will be lost.'**
+  String get dialog_deleteGoalConfirm;
+
+  /// No description provided for @dialog_deleteEntryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete entry?'**
+  String get dialog_deleteEntryTitle;
+
+  /// No description provided for @dialog_deleteEntryConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'This will affect your goal balance.'**
+  String get dialog_deleteEntryConfirm;
 
   /// No description provided for @dialog_deleteCategoryTitle.
   ///
@@ -955,6 +985,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Add new category'**
   String get semantics_addNewCategory;
+
+  /// No description provided for @onboarding_languageTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Language'**
+  String get onboarding_languageTitle;
 
   /// No description provided for @onboarding_welcomeTitle.
   ///

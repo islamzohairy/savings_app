@@ -207,7 +207,7 @@ class _MonthSummaryCard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(AppLocalizations.of(context)!.label_savingsRate),
-                Text('${displayRate.toStringAsFixed(1)}%', style: Theme.of(context).textTheme.titleMedium),
+                Text(AppLocalizations.of(context)!.label_percent(displayRate.toStringAsFixed(1)), style: Theme.of(context).textTheme.titleMedium),
               ],
             ),
             if (!showLifetime && movedToGoals > 0) ...[
@@ -269,7 +269,7 @@ class _GoalProgressCard extends ConsumerWidget {
             subtitle: target != null
                 ? LinearProgressIndicator(value: progress)
                 : const LinearProgressIndicator(value: 0),
-            trailing: Text(target != null ? '${(progress * 100).toInt()}%' : formatAmount(current)),
+            trailing: Text(target != null ? AppLocalizations.of(context)!.label_percent('${(progress * 100).toInt()}') : formatAmount(current)),
             onTap: () => context.push('/goals/${goal['id']}'),
           );
         },

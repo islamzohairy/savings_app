@@ -227,7 +227,7 @@ class _SummaryCard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(AppLocalizations.of(context)!.label_savingsRate),
-                Text('${rate.toStringAsFixed(1)}%', style: Theme.of(context).textTheme.titleMedium),
+                Text(AppLocalizations.of(context)!.label_percent(rate.toStringAsFixed(1)), style: Theme.of(context).textTheme.titleMedium),
               ],
             ),
           ],
@@ -279,7 +279,7 @@ class _CategoryChart extends StatelessWidget {
                 return PieChartSectionData(
                   value: amount.toDouble(),
                   color: color,
-                  title: '${pct.toStringAsFixed(0)}%',
+                  title: AppLocalizations.of(context)!.label_percent(pct.toStringAsFixed(0)),
                   radius: chartHeight / 2 - 20,
                   titleStyle: TextStyle(color: Theme.of(context).colorScheme.onPrimary, fontSize: 12, fontWeight: FontWeight.bold),
                 );
@@ -303,7 +303,7 @@ class _CategoryChart extends StatelessWidget {
                 Expanded(child: Text(displayCategoryName(d['name'] as String, Localizations.localeOf(context).languageCode))),
                 Text(formatAmount(amount)),
                 const SizedBox(width: 8),
-                Text('${pct.toStringAsFixed(1)}%', style: Theme.of(context).textTheme.bodySmall),
+                Text(AppLocalizations.of(context)!.label_percent(pct.toStringAsFixed(1)), style: Theme.of(context).textTheme.bodySmall),
               ],
             ),
           );

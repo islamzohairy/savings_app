@@ -192,6 +192,9 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get error_insufficientBalance => 'Insufficient balance';
+
+  @override
   String get btn_add => 'Add';
 
   @override
@@ -301,6 +304,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dialog_deleteActivityTitle => 'Delete activity?';
+
+  @override
+  String get dialog_deleteGoalTitle => 'Delete goal?';
+
+  @override
+  String get dialog_deleteGoalConfirm =>
+      'All contribution history will be lost.';
+
+  @override
+  String get dialog_deleteEntryTitle => 'Delete entry?';
+
+  @override
+  String get dialog_deleteEntryConfirm => 'This will affect your goal balance.';
 
   @override
   String get dialog_deleteCategoryTitle => 'Delete category?';
@@ -472,6 +488,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get semantics_addNewCategory => 'Add new category';
+
+  @override
+  String get onboarding_languageTitle => 'Language';
 
   @override
   String get onboarding_welcomeTitle => 'Welcome to Savings';
