@@ -266,6 +266,25 @@ void main() {
       expect(goal!['status'], 1, reason: 'goal should be auto-completed on overfunding');
     });
 
+    test('withdrawal reduces goal balance', () async {
+      final now = DateTime.now().toIso8601String();
+      final goalId = await goalRepo.insert({
+        'name': 'Withdrawal Goal',
+        'targetAmountMinor': 1000,
+        'iconKey': 'flag',
+        'colorHex': '3F51B5',
+        'status': 0,
+        'sortOrder': 0,
+        'createdAt': now,
+      });
+
+      await goalRepo.contribute(goalId, 500);
+      expect(await goalRepo.currentAmount(goalId), 500);
+
+      await goalRepo.withdraw(goalId, 200);
+      expect(await goalRepo.currentAmount(goalId), 300, reason: 'withdrawal should reduce goal balance');
+    });
+
     test('open-ended goal never auto-completes', () async {
       final now = DateTime.now().toIso8601String();
       final goalId = await goalRepo.insert({

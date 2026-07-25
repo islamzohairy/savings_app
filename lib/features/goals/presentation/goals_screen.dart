@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/db/database.dart';
 import '../../../core/money.dart';
 import '../application/goal_provider.dart';
+import '../../dashboard/presentation/dashboard_screen.dart';
 import 'goal_detail_screen.dart';
 
 class GoalsScreen extends ConsumerWidget {
@@ -67,6 +68,7 @@ class GoalsScreen extends ConsumerWidget {
               'createdAt': now,
             });
             refreshGoals(ref);
+            refreshDashboard(ref);
             if (ctx.mounted) Navigator.pop(ctx);
           }, child: const Text('Create')),
         ],

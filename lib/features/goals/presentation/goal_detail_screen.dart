@@ -6,6 +6,7 @@ import '../../../core/money.dart';
 import '../application/goal_provider.dart';
 import '../../transactions/presentation/add_edit_transaction_screen.dart';
 import '../../transactions/application/transaction_provider.dart';
+import '../../dashboard/presentation/dashboard_screen.dart';
 
 class GoalDetailScreen extends ConsumerStatefulWidget {
   const GoalDetailScreen({super.key, required this.goalId});
@@ -119,7 +120,7 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
             ),
           Text('History', style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
-          _GoalHistory(goalId: widget.goalId, onRefresh: _load),
+          _GoalHistory(goalId: widget.goalId, onRefresh: _load, key: ValueKey(_currentAmount)),
         ],
       ),
     );
@@ -143,6 +144,8 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
             if (minor <= 0) return;
             await ref.read(goalRepoProvider).contribute(widget.goalId, minor);
             refreshGoals(ref);
+            refreshDashboard(ref);
+            refreshTransactions(ref);
             await _load();
             if (ctx.mounted) Navigator.pop(ctx);
           }, child: const Text('Add')),
@@ -169,6 +172,8 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
             if (minor <= 0) return;
             await ref.read(goalRepoProvider).withdraw(widget.goalId, minor);
             refreshGoals(ref);
+            refreshDashboard(ref);
+            refreshTransactions(ref);
             await _load();
             if (ctx.mounted) Navigator.pop(ctx);
           }, child: const Text('Withdraw')),
@@ -212,6 +217,7 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
             };
             await ref.read(goalRepoProvider).update(widget.goalId, updates);
             refreshGoals(ref);
+            refreshDashboard(ref);
             await _load();
             if (ctx.mounted) Navigator.pop(ctx);
           }, child: const Text('Save')),
@@ -232,15 +238,17 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
       case 'delete':
         await repo.delete(id);
         refreshGoals(ref);
+        refreshDashboard(ref);
         if (mounted) { Navigator.pop(context); return; }
     }
     refreshGoals(ref);
+    refreshDashboard(ref);
     await _load();
   }
 }
 
 class _GoalHistory extends ConsumerStatefulWidget {
-  const _GoalHistory({required this.goalId, required this.onRefresh});
+  const _GoalHistory({super.key, required this.goalId, required this.onRefresh});
   final int goalId;
   final VoidCallback onRefresh;
 
@@ -307,11 +315,15 @@ class _GoalHistoryState extends ConsumerState<_GoalHistory> {
   void _handleTxnMenu(String action, Map<String, dynamic> t) async {
     if (action == 'delete') {
       await ref.read(transactionRepoProvider).delete(t['id'] as int);
+      refreshTransactions(ref);
+      refreshDashboard(ref);
+      refreshGoals(ref);
     } else if (action == 'edit') {
       if (mounted) {
         await Navigator.push(context, MaterialPageRoute(
           builder: (_) => AddEditTransactionScreen(transaction: t),
         ));
+        refreshGoals(ref);
       }
     }
     await _load();

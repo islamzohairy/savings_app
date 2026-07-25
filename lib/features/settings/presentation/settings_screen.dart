@@ -10,6 +10,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:file_picker/file_picker.dart';
 import '../../../core/settings_provider.dart';
 import '../../../core/db/database.dart';
+import '../../dashboard/presentation/dashboard_screen.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -156,6 +157,7 @@ class SettingsScreen extends ConsumerWidget {
     );
     if (day != null) {
       await ref.read(settingsProvider.notifier).set('monthStartDay', '$day');
+      refreshDashboard(ref);
     }
   }
 

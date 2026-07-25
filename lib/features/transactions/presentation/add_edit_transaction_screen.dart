@@ -170,6 +170,7 @@ class _AddEditTransactionScreenState extends ConsumerState<AddEditTransactionScr
 
     refreshTransactions(ref);
     refreshDashboard(ref);
+    refreshGoals(ref);
 
     if (mounted) Navigator.pop(context);
   }

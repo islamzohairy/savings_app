@@ -25,13 +25,33 @@ class AppDatabase {
     final path = p.join(dir, 'savings.sqlite');
     return openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: (db, version) async {
         await _createTables(db);
         await _seedDefaults(db);
       },
       onUpgrade: (db, oldVersion, newVersion) async {
-        // stub for future migrations
+        if (oldVersion < 2) {
+          // Remove CHECK(amountMinor >= 0) constraint by recreating the table
+          await db.execute('''
+            CREATE TABLE transactions_new (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              type INTEGER NOT NULL,
+              amountMinor INTEGER NOT NULL,
+              categoryId INTEGER,
+              goalId INTEGER,
+              date TEXT NOT NULL,
+              note TEXT,
+              createdAt TEXT NOT NULL,
+              updatedAt TEXT NOT NULL,
+              FOREIGN KEY (categoryId) REFERENCES categories(id),
+              FOREIGN KEY (goalId) REFERENCES goals(id)
+            )
+          ''');
+          await db.execute('INSERT INTO transactions_new SELECT * FROM transactions');
+          await db.execute('DROP TABLE transactions');
+          await db.execute('ALTER TABLE transactions_new RENAME TO transactions');
+        }
       },
     );
   }
@@ -68,7 +88,7 @@ class AppDatabase {
       CREATE TABLE transactions (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         type INTEGER NOT NULL,
-        amountMinor INTEGER NOT NULL CHECK(amountMinor >= 0),
+        amountMinor INTEGER NOT NULL,
         categoryId INTEGER,
         goalId INTEGER,
         date TEXT NOT NULL,

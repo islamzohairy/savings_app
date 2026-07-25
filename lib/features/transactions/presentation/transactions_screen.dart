@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../../../core/db/database.dart';
 import '../../../core/money.dart';
 import '../../categories/application/category_provider.dart';
+import '../../dashboard/presentation/dashboard_screen.dart';
 import '../application/transaction_provider.dart';
 import 'add_edit_transaction_screen.dart';
 
@@ -211,6 +212,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
             onPressed: () async {
               await ref.read(transactionRepoProvider).delete(t['id'] as int);
               refreshTransactions(ref);
+              refreshDashboard(ref);
               if (ctx.mounted) Navigator.pop(ctx);
               _loadInitial();
             },
