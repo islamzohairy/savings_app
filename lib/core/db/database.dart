@@ -111,12 +111,20 @@ class AppDatabase {
   Future<void> _seedDefaults(Database db) async {
     final now = DateTime.now().toIso8601String();
     final defaults = [
-      {'name': 'Salary', 'iconKey': 'work', 'colorHex': '4CAF50', 'type': 0, 'sortOrder': 0, 'createdAt': now},
-      {'name': 'Food', 'iconKey': 'restaurant', 'colorHex': 'FF9800', 'type': 1, 'sortOrder': 1, 'createdAt': now},
-      {'name': 'Transport', 'iconKey': 'directions_car', 'colorHex': '2196F3', 'type': 1, 'sortOrder': 2, 'createdAt': now},
-      {'name': 'Bills', 'iconKey': 'receipt', 'colorHex': 'F44336', 'type': 1, 'sortOrder': 3, 'createdAt': now},
-      {'name': 'Entertainment', 'iconKey': 'movie', 'colorHex': '9C27B0', 'type': 1, 'sortOrder': 4, 'createdAt': now},
-      {'name': 'Savings', 'iconKey': 'savings', 'colorHex': '00BCD4', 'type': 0, 'sortOrder': 5, 'createdAt': now},
+      {'name': 'Groceries', 'iconKey': 'restaurant', 'colorHex': 'FF9800', 'type': 1, 'sortOrder': 0, 'createdAt': now},
+      {'name': 'Food & Dining', 'iconKey': 'restaurant', 'colorHex': 'FF5722', 'type': 1, 'sortOrder': 1, 'createdAt': now},
+      {'name': 'Transportation', 'iconKey': 'directions_car', 'colorHex': '2196F3', 'type': 1, 'sortOrder': 2, 'createdAt': now},
+      {'name': 'Housing & Rent', 'iconKey': 'receipt', 'colorHex': 'F44336', 'type': 1, 'sortOrder': 3, 'createdAt': now},
+      {'name': 'Utilities & Bills', 'iconKey': 'receipt', 'colorHex': 'E91E63', 'type': 1, 'sortOrder': 4, 'createdAt': now},
+      {'name': 'Shopping', 'iconKey': 'label', 'colorHex': '9C27B0', 'type': 1, 'sortOrder': 5, 'createdAt': now},
+      {'name': 'Health & Fitness', 'iconKey': 'work', 'colorHex': '4CAF50', 'type': 1, 'sortOrder': 6, 'createdAt': now},
+      {'name': 'Entertainment', 'iconKey': 'movie', 'colorHex': '673AB7', 'type': 1, 'sortOrder': 7, 'createdAt': now},
+      {'name': 'Other Expense', 'iconKey': 'label', 'colorHex': '757575', 'type': 1, 'sortOrder': 8, 'createdAt': now},
+      {'name': 'Salary', 'iconKey': 'work', 'colorHex': '4CAF50', 'type': 0, 'sortOrder': 9, 'createdAt': now},
+      {'name': 'Freelance / Business', 'iconKey': 'work', 'colorHex': '00BCD4', 'type': 0, 'sortOrder': 10, 'createdAt': now},
+      {'name': 'Gifts', 'iconKey': 'label', 'colorHex': 'FF9800', 'type': 0, 'sortOrder': 11, 'createdAt': now},
+      {'name': 'Investments / Interest', 'iconKey': 'savings', 'colorHex': '009688', 'type': 0, 'sortOrder': 12, 'createdAt': now},
+      {'name': 'Other Income', 'iconKey': 'label', 'colorHex': '757575', 'type': 0, 'sortOrder': 13, 'createdAt': now},
     ];
     for (final row in defaults) {
       await db.insert('categories', row);

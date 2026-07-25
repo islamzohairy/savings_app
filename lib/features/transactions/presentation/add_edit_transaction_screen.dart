@@ -55,7 +55,7 @@ class _AddEditTransactionScreenState extends ConsumerState<AddEditTransactionScr
     final catsAsync = ref.watch(categoriesProvider);
     final goalsAsync = ref.watch(goalsProvider);
     return Scaffold(
-      appBar: AppBar(title: Text(_isEdit ? 'Edit Transaction' : 'Add Transaction')),
+      appBar: AppBar(title: Text(_isEdit ? 'Edit Activity' : 'Add Activity')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -102,7 +102,12 @@ class _AddEditTransactionScreenState extends ConsumerState<AddEditTransactionScr
               loading: () => const LinearProgressIndicator(),
               error: (e, _) => Text('Error: $e'),
               data: (cats) {
-                final active = cats.where((c) => (c['isArchived'] as int) == 0).toList();
+                final active = cats.where((c) {
+                  if ((c['isArchived'] as int) == 1) return false;
+                  if (_type == TransactionType.saving) return false;
+                  final catType = c['type'] as int;
+                  return catType == _type.index;
+                }).toList();
                 final sourceLabel = _type == TransactionType.income ? 'Source' : 'Category';
                 return DropdownButtonFormField<int>(
                   initialValue: _categoryId,

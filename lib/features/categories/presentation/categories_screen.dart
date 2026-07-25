@@ -17,6 +17,7 @@ class CategoriesScreen extends ConsumerWidget {
         data: (list) {
           if (list.isEmpty) return const Center(child: Text('No categories'));
           return ListView.builder(
+            padding: const EdgeInsets.only(bottom: 80),
             itemCount: list.length,
             itemBuilder: (ctx, i) {
               final c = list[i];
@@ -33,6 +34,7 @@ class CategoriesScreen extends ConsumerWidget {
                     if (archived) const PopupMenuItem(value: 'unarchive', child: Text('Unarchive')),
                     if (!archived) const PopupMenuItem(value: 'archive', child: Text('Archive')),
                     const PopupMenuItem(value: 'edit', child: Text('Edit')),
+                    const PopupMenuItem(value: 'delete', child: Text('Delete')),
                   ],
                 ),
               );
@@ -59,6 +61,27 @@ class CategoriesScreen extends ConsumerWidget {
         await repo.unarchive(cat['id'] as int);
       case 'edit':
         _showEditDialog(context, ref, cat);
+      case 'delete':
+        final count = await repo.countTransactions(cat['id'] as int);
+        if (context.mounted) {
+          final confirmed = await showDialog<bool>(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              title: const Text('Delete category?'),
+              content: Text(count > 0
+                  ? 'This category has $count transactions. Deleting it will remove the category from those records. Continue?'
+                  : 'Are you sure you want to delete this category?'),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+                FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Delete')),
+              ],
+            ),
+          );
+          if (confirmed == true) {
+            await repo.delete(cat['id'] as int);
+            refreshCategories(ref);
+          }
+        }
     }
     refreshCategories(ref);
   }
@@ -77,7 +100,7 @@ class CategoriesScreen extends ConsumerWidget {
             const SizedBox(height: 8),
             DropdownButtonFormField<TransactionType>(
               initialValue: type,
-              items: TransactionType.values.map((t) => DropdownMenuItem(value: t, child: Text(t.name))).toList(),
+              items: [TransactionType.income, TransactionType.expense].map((t) => DropdownMenuItem(value: t, child: Text(t.name))).toList(),
               onChanged: (v) => type = v ?? type,
               decoration: const InputDecoration(labelText: 'Type'),
             ),

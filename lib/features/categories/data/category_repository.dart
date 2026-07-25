@@ -2,7 +2,8 @@ import '../../../core/db/database.dart';
 import 'package:sqflite/sqflite.dart';
 
 class CategoryRepository {
-  final AppDatabase _db = AppDatabase.instance;
+  CategoryRepository([AppDatabase? db]) : _db = db ?? AppDatabase.instance;
+  final AppDatabase _db;
 
   Future<List<Map<String, dynamic>>> getAll() async {
     final db = await _db.database;
@@ -39,6 +40,11 @@ class CategoryRepository {
   Future<void> unarchive(int id) async {
     final db = await _db.database;
     await db.update('categories', {'isArchived': 0}, where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<void> delete(int id) async {
+    final db = await _db.database;
+    await db.delete('categories', where: 'id = ?', whereArgs: [id]);
   }
 
   Future<int> countTransactions(int categoryId) async {

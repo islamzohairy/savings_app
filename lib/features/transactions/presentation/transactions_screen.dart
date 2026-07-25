@@ -89,7 +89,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     final filtered = _filtered;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Transactions'),
+        title: const Text('Activity'),
         actions: [
           Semantics(
             label: 'Manage categories',
@@ -105,7 +105,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
           _buildFilters(cats),
           Expanded(
             child: _txns.isEmpty && !_loading
-                ? const Center(child: Text('No transactions'))
+                ? const Center(child: Text('No activity'))
                 : ListView.builder(
                     controller: _scrollCtrl,
                     itemCount: filtered.length + (_hasMore ? 1 : 0),
@@ -123,7 +123,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
         ],
       ),
       floatingActionButton: Semantics(
-        label: 'Add new transaction',
+        label: 'Add new activity',
         child: FloatingActionButton(
           onPressed: () => _add(context),
           child: const Icon(Icons.add),
@@ -213,7 +213,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete transaction?'),
+        title: const Text('Delete activity?'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
           FilledButton(

@@ -4,6 +4,7 @@ import 'package:savings_app/core/date_utils.dart';
 import 'package:savings_app/core/db/database.dart';
 import 'package:savings_app/features/transactions/data/transaction_repository.dart';
 import 'package:savings_app/features/goals/data/goal_repository.dart';
+import 'package:savings_app/features/categories/data/category_repository.dart';
 
 void main() {
   late AppDatabase appDb;
@@ -380,6 +381,30 @@ void main() {
       }
 
       expect(totalFetched, 65, reason: 'all 65 goal history transactions must be fetched');
+    });
+  });
+
+  group('category type filtering', () {
+    test('income categories excluded from expense filter and vice versa', () async {
+      final catRepo = CategoryRepository(appDb);
+      final now = DateTime.now().toIso8601String();
+
+      await catRepo.insert({'name': 'Salary', 'iconKey': 'work', 'colorHex': '4CAF50', 'type': 0, 'isArchived': 0, 'sortOrder': 0, 'createdAt': now});
+      await catRepo.insert({'name': 'Freelance', 'iconKey': 'work', 'colorHex': '00BCD4', 'type': 0, 'isArchived': 0, 'sortOrder': 1, 'createdAt': now});
+      await catRepo.insert({'name': 'Groceries', 'iconKey': 'restaurant', 'colorHex': 'FF9800', 'type': 1, 'isArchived': 0, 'sortOrder': 2, 'createdAt': now});
+      await catRepo.insert({'name': 'Rent', 'iconKey': 'receipt', 'colorHex': 'F44336', 'type': 1, 'isArchived': 0, 'sortOrder': 3, 'createdAt': now});
+      await catRepo.insert({'name': 'Archived Cat', 'iconKey': 'label', 'colorHex': '757575', 'type': 0, 'isArchived': 1, 'sortOrder': 4, 'createdAt': now});
+
+      final allActive = await catRepo.getActive();
+      expect(allActive.length, 4, reason: 'archived category excluded');
+
+      final incomeCats = allActive.where((c) => (c['type'] as int) == 0).toList();
+      final expenseCats = allActive.where((c) => (c['type'] as int) == 1).toList();
+
+      expect(incomeCats.length, 2, reason: 'only income categories for income type');
+      expect(incomeCats.map((c) => c['name']), containsAll(['Salary', 'Freelance']));
+      expect(expenseCats.length, 2, reason: 'only expense categories for expense type');
+      expect(expenseCats.map((c) => c['name']), containsAll(['Groceries', 'Rent']));
     });
   });
 }

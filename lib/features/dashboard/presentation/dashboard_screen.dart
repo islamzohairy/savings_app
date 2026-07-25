@@ -61,7 +61,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Savings')),
       floatingActionButton: Semantics(
-        label: 'Add new transaction',
+        label: 'Add new activity',
         child: FloatingActionButton.extended(
           onPressed: () => _quickAdd(context),
           icon: const Icon(Icons.add),
