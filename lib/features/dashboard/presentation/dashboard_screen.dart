@@ -2,28 +2,37 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import '../../../core/date_utils.dart';
 import '../../../core/money.dart';
+import '../../../core/settings_provider.dart';
 import '../../transactions/application/transaction_provider.dart';
 import '../../goals/application/goal_provider.dart';
 
 class _DashboardData {
-  final int balance, monthIncome, monthExpenses;
+  final int spendableBalance, goalBalances, monthIncome, monthExpenses, monthMovedToGoals;
+  final int lifetimeIncome, lifetimeExpenses;
   final double savingsRate;
   final List<Map<String, dynamic>> goals;
-  _DashboardData(this.balance, this.monthIncome, this.monthExpenses, this.savingsRate, this.goals);
+  _DashboardData(this.spendableBalance, this.goalBalances, this.monthIncome, this.monthExpenses, this.monthMovedToGoals, this.lifetimeIncome, this.lifetimeExpenses, this.savingsRate, this.goals);
 }
 
 final dashboardDataProvider = FutureProvider<_DashboardData>((ref) async {
   ref.watch(_dashboardRefreshProvider);
   final txnRepo = ref.read(transactionRepoProvider);
   final goalRepo = ref.read(goalRepoProvider);
+  final monthStartDay = int.tryParse(ref.read(settingsProvider)['monthStartDay'] ?? '1') ?? 1;
   final now = DateTime.now();
-  final balance = await txnRepo.totalBalance();
-  final income = await txnRepo.monthTotal(0, now.month, now.year);
-  final expenses = await txnRepo.monthTotal(1, now.month, now.year);
+  final (start, end) = monthDateRange(now, monthStartDay);
+  final spendable = await txnRepo.spendableBalance();
+  final goalBals = await txnRepo.totalGoalBalances();
+  final income = await txnRepo.monthTotal(0, start, end);
+  final expenses = await txnRepo.monthTotal(1, start, end);
+  final moved = await txnRepo.savingsInRange(start, end);
   final rate = income > 0 ? ((income - expenses) / income * 100).clamp(0.0, 100.0) : 0.0;
-  final goals = await goalRepo.getAll();
-  return _DashboardData(balance, income, expenses, rate, goals);
+  final lifetimeIncome = await txnRepo.totalByType(0);
+  final lifetimeExpenses = await txnRepo.totalByType(1);
+  final goals = await goalRepo.getActive();
+  return _DashboardData(spendable, goalBals, income, expenses, moved, lifetimeIncome, lifetimeExpenses, rate, goals);
 });
 
 final _dashboardRefreshProvider = NotifierProvider<_RefreshNotifier, int>(_RefreshNotifier.new);
@@ -38,11 +47,18 @@ void refreshDashboard(WidgetRef ref) {
   ref.read(_dashboardRefreshProvider.notifier).refresh();
 }
 
-class DashboardScreen extends ConsumerWidget {
+class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends ConsumerState<DashboardScreen> {
+  bool _showLifetime = false;
+
+  @override
+  Widget build(BuildContext context) {
     final data = ref.watch(dashboardDataProvider);
     return Scaffold(
       appBar: AppBar(title: const Text('Savings')),
@@ -66,12 +82,17 @@ class DashboardScreen extends ConsumerWidget {
           data: (d) => ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              _BalanceCard(balance: d.balance),
+              _BalanceCard(spendableBalance: d.spendableBalance, goalBalances: d.goalBalances),
               const SizedBox(height: 12),
               _MonthSummaryCard(
                 income: d.monthIncome,
                 expenses: d.monthExpenses,
+                movedToGoals: d.monthMovedToGoals,
                 savingsRate: d.savingsRate,
+                lifetimeIncome: d.lifetimeIncome,
+                lifetimeExpenses: d.lifetimeExpenses,
+                showLifetime: _showLifetime,
+                onToggle: () => setState(() => _showLifetime = !_showLifetime),
               ),
               const SizedBox(height: 12),
               if (d.goals.isNotEmpty) ...[
@@ -79,7 +100,7 @@ class DashboardScreen extends ConsumerWidget {
                 const SizedBox(height: 8),
                 ...d.goals.map((g) => _GoalProgressCard(goal: g)),
               ],
-              if (d.balance == 0 && d.goals.isEmpty) ...[
+              if (d.spendableBalance == 0 && d.goalBalances == 0 && d.goals.isEmpty) ...[
                 const SizedBox(height: 48),
                 Icon(Icons.savings_outlined, size: 64, color: Theme.of(context).colorScheme.outline),
                 const SizedBox(height: 16),
@@ -100,21 +121,28 @@ class DashboardScreen extends ConsumerWidget {
 }
 
 class _BalanceCard extends StatelessWidget {
-  const _BalanceCard({required this.balance});
-  final int balance;
+  const _BalanceCard({required this.spendableBalance, required this.goalBalances});
+  final int spendableBalance;
+  final int goalBalances;
 
   @override
   Widget build(BuildContext context) {
-    final color = balance >= 0 ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.error;
+    final color = spendableBalance >= 0 ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.error;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Current Balance', style: Theme.of(context).textTheme.labelLarge),
+            Text('Spendable Balance', style: Theme.of(context).textTheme.labelLarge),
             const SizedBox(height: 4),
-            Text(formatAmount(balance), style: Theme.of(context).textTheme.headlineLarge?.copyWith(color: color)),
+            Text(formatAmount(spendableBalance), style: Theme.of(context).textTheme.headlineLarge?.copyWith(color: color)),
+            if (goalBalances > 0) ...[
+              const SizedBox(height: 4),
+              Text('In Goals: ${formatAmount(goalBalances)}', style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(context).colorScheme.outline,
+              )),
+            ],
           ],
         ),
       ),
@@ -123,27 +151,50 @@ class _BalanceCard extends StatelessWidget {
 }
 
 class _MonthSummaryCard extends StatelessWidget {
-  const _MonthSummaryCard({required this.income, required this.expenses, required this.savingsRate});
-  final int income, expenses;
+  const _MonthSummaryCard({required this.income, required this.expenses, required this.movedToGoals, required this.savingsRate, required this.lifetimeIncome, required this.lifetimeExpenses, required this.onToggle, required this.showLifetime});
+  final int income, expenses, movedToGoals, lifetimeIncome, lifetimeExpenses;
   final double savingsRate;
+  final VoidCallback onToggle;
+  final bool showLifetime;
 
   @override
   Widget build(BuildContext context) {
-    final monthLabel = DateFormat.MMMM().format(DateTime.now());
+    final displayIncome = showLifetime ? lifetimeIncome : income;
+    final displayExpenses = showLifetime ? lifetimeExpenses : expenses;
+    final displayRate = displayIncome > 0 ? ((displayIncome - displayExpenses) / displayIncome * 100).clamp(0.0, 100.0) : 0.0;
+    final label = showLifetime ? 'Lifetime' : DateFormat.MMMM().format(DateTime.now());
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('$monthLabel Summary', style: Theme.of(context).textTheme.titleMedium),
+            Row(
+              children: [
+                Text('$label Summary', style: Theme.of(context).textTheme.titleMedium),
+                const Spacer(),
+                SegmentedButton<bool>(
+                  segments: const [
+                    ButtonSegment(value: false, label: Text('Monthly')),
+                    ButtonSegment(value: true, label: Text('Lifetime')),
+                  ],
+                  selected: {showLifetime},
+                  onSelectionChanged: (_) => onToggle(),
+                  style: ButtonStyle(
+                    visualDensity: VisualDensity.compact,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    textStyle: WidgetStatePropertyAll(Theme.of(context).textTheme.labelSmall),
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(height: 12),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _StatColumn(label: 'Income', amount: income, color: Theme.of(context).colorScheme.primary),
-                _StatColumn(label: 'Expenses', amount: expenses, color: Theme.of(context).colorScheme.error),
-                _StatColumn(label: 'Net', amount: income - expenses, color: Theme.of(context).colorScheme.tertiary),
+                _StatColumn(label: 'Income', amount: displayIncome, color: Theme.of(context).colorScheme.primary),
+                _StatColumn(label: 'Expenses', amount: displayExpenses, color: Theme.of(context).colorScheme.error),
+                _StatColumn(label: 'Net', amount: displayIncome - displayExpenses, color: Theme.of(context).colorScheme.tertiary),
               ],
             ),
             const Divider(height: 24),
@@ -151,9 +202,19 @@ class _MonthSummaryCard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text('Savings Rate'),
-                Text('${savingsRate.toStringAsFixed(1)}%', style: Theme.of(context).textTheme.titleMedium),
+                Text('${displayRate.toStringAsFixed(1)}%', style: Theme.of(context).textTheme.titleMedium),
               ],
             ),
+            if (!showLifetime && movedToGoals > 0) ...[
+              const Divider(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Moved to Goals'),
+                  Text(formatAmount(movedToGoals), style: Theme.of(context).textTheme.titleSmall),
+                ],
+              ),
+            ],
           ],
         ),
       ),
@@ -201,6 +262,7 @@ class _GoalProgressCard extends ConsumerWidget {
                 ? LinearProgressIndicator(value: progress)
                 : const LinearProgressIndicator(value: 0),
             trailing: Text(target != null ? '${(progress * 100).toInt()}%' : formatAmount(current)),
+            onTap: () => context.push('/goals/${goal['id']}'),
           );
         },
       ),

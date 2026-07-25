@@ -19,11 +19,65 @@ class TransactionsScreen extends ConsumerStatefulWidget {
 class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
   int? _filterType;
   int? _filterCategoryId;
+  final List<Map<String, dynamic>> _txns = [];
+  bool _loading = true;
+  bool _hasMore = true;
+  static const _batchSize = 50;
+  int _offset = 0;
+  final _scrollCtrl = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadInitial();
+    _scrollCtrl.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadInitial() async {
+    _offset = 0;
+    _txns.clear();
+    final repo = ref.read(transactionRepoProvider);
+    final batch = await repo.getAllPaginated(limit: _batchSize, offset: 0);
+    _txns.addAll(batch);
+    _hasMore = batch.length == _batchSize;
+    _offset = batch.length;
+    setState(() => _loading = false);
+  }
+
+  void _onScroll() {
+    if (_scrollCtrl.position.pixels >= _scrollCtrl.position.maxScrollExtent - 200 && !_loading && _hasMore) {
+      _loadMore();
+    }
+  }
+
+  Future<void> _loadMore() async {
+    setState(() => _loading = true);
+    final repo = ref.read(transactionRepoProvider);
+    final batch = await repo.getAllPaginated(limit: _batchSize, offset: _offset);
+    setState(() {
+      _txns.addAll(batch);
+      _hasMore = batch.length == _batchSize;
+      _offset += batch.length;
+      _loading = false;
+    });
+  }
+
+  List<Map<String, dynamic>> get _filtered => _txns.where((t) {
+    if (_filterType != null && t['type'] != _filterType) return false;
+    if (_filterCategoryId != null && t['categoryId'] != _filterCategoryId) return false;
+    return true;
+  }).toList();
 
   @override
   Widget build(BuildContext context) {
-    final txns = ref.watch(transactionsProvider);
     final cats = ref.watch(categoriesProvider);
+    final filtered = _filtered;
     return Scaffold(
       appBar: AppBar(
         title: const Text('Transactions'),
@@ -41,22 +95,21 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
         children: [
           _buildFilters(cats),
           Expanded(
-            child: txns.when(
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => Center(child: Text('Error: $e')),
-              data: (list) {
-                final filtered = list.where((t) {
-                  if (_filterType != null && t['type'] != _filterType) return false;
-                  if (_filterCategoryId != null && t['categoryId'] != _filterCategoryId) return false;
-                  return true;
-                }).toList();
-                if (filtered.isEmpty) return const Center(child: Text('No transactions'));
-                return ListView.builder(
-                  itemCount: filtered.length,
-                  itemBuilder: (ctx, i) => _tile(ctx, filtered[i]),
-                );
-              },
-            ),
+            child: _txns.isEmpty && !_loading
+                ? const Center(child: Text('No transactions'))
+                : ListView.builder(
+                    controller: _scrollCtrl,
+                    itemCount: filtered.length + (_hasMore ? 1 : 0),
+                    itemBuilder: (ctx, i) {
+                      if (i == filtered.length) {
+                        return const Padding(
+                          padding: EdgeInsets.all(16),
+                          child: Center(child: CircularProgressIndicator()),
+                        );
+                      }
+                      return _tile(ctx, filtered[i]);
+                    },
+                  ),
           ),
         ],
       ),
@@ -107,15 +160,28 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
 
   Widget _tile(BuildContext context, Map<String, dynamic> t) {
     final type = TransactionType.values[t['type'] as int];
-    final color = type == TransactionType.income ? Theme.of(context).colorScheme.primary : type == TransactionType.expense ? Theme.of(context).colorScheme.error : Theme.of(context).colorScheme.tertiary;
+    final cs = Theme.of(context).colorScheme;
+    final color = type == TransactionType.income ? cs.primary
+        : type == TransactionType.expense ? cs.error
+        : cs.tertiary;
     final date = DateTime.parse(t['date'] as String);
+    final goalName = t['goalName'] as String?;
+    final subtitle = type == TransactionType.saving
+        ? (goalName != null ? '→ $goalName' : 'Saving')
+        : (t['categoryName'] as String? ?? t['note'] as String? ?? type.name);
     return ListTile(
       leading: CircleAvatar(
         backgroundColor: color.withAlpha(30),
-        child: Icon(type == TransactionType.income ? Icons.arrow_downward : Icons.arrow_upward, color: color, size: 20),
+        child: Icon(
+          type == TransactionType.income ? Icons.arrow_downward
+              : type == TransactionType.saving ? Icons.savings
+              : Icons.arrow_upward,
+          color: color,
+          size: 20,
+        ),
       ),
       title: Text(formatAmount(t['amountMinor'] as int)),
-      subtitle: Text(t['categoryName'] as String? ?? t['note'] as String? ?? type.name),
+      subtitle: Text(subtitle),
       trailing: Text(DateFormat.MMMd().format(date), style: Theme.of(context).textTheme.bodySmall),
       onTap: () => _edit(context, t),
       onLongPress: () => _confirmDelete(context, t),
@@ -126,11 +192,12 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     await Navigator.push(context, MaterialPageRoute(builder: (_) => const AddEditTransactionScreen()));
     refreshTransactions(ref);
     refreshCategories(ref);
+    _loadInitial();
   }
 
   void _edit(BuildContext context, Map<String, dynamic> t) async {
     await Navigator.push(context, MaterialPageRoute(builder: (_) => AddEditTransactionScreen(transaction: t)));
-    refreshTransactions(ref);
+    _loadInitial();
   }
 
   void _confirmDelete(BuildContext context, Map<String, dynamic> t) {
@@ -145,6 +212,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
               await ref.read(transactionRepoProvider).delete(t['id'] as int);
               refreshTransactions(ref);
               if (ctx.mounted) Navigator.pop(ctx);
+              _loadInitial();
             },
             child: const Text('Delete'),
           ),

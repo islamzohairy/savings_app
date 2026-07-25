@@ -6,6 +6,7 @@ import '../features/dashboard/presentation/dashboard_screen.dart';
 import '../features/transactions/presentation/transactions_screen.dart';
 import '../features/categories/presentation/categories_screen.dart';
 import '../features/goals/presentation/goals_screen.dart';
+import '../features/goals/presentation/goal_detail_screen.dart';
 import '../features/reports/presentation/reports_screen.dart';
 import '../features/settings/presentation/settings_screen.dart';
 
@@ -20,6 +21,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(path: '/transactions', builder: (_, _) => const TransactionsScreen()),
           GoRoute(path: '/categories', builder: (_, _) => const CategoriesScreen()),
           GoRoute(path: '/goals', builder: (_, _) => const GoalsScreen()),
+          GoRoute(
+            path: '/goals/:id',
+            builder: (_, state) => GoalDetailScreen(goalId: int.parse(state.pathParameters['id']!)),
+          ),
           GoRoute(path: '/reports', builder: (_, _) => const ReportsScreen()),
           GoRoute(path: '/settings', builder: (_, _) => const SettingsScreen()),
         ],

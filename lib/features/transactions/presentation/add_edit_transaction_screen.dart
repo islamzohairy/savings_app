@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../../core/db/database.dart';
 import '../../../core/money.dart';
 import '../../categories/application/category_provider.dart';
+import '../../goals/application/goal_provider.dart';
 import '../application/transaction_provider.dart';
 import '../../dashboard/presentation/dashboard_screen.dart';
 
@@ -20,6 +21,7 @@ class _AddEditTransactionScreenState extends ConsumerState<AddEditTransactionScr
   final _amountCtrl = TextEditingController();
   final _noteCtrl = TextEditingController();
   int? _categoryId;
+  int? _goalId;
   DateTime _date = DateTime.now();
   bool _isSaving = false;
 
@@ -33,6 +35,7 @@ class _AddEditTransactionScreenState extends ConsumerState<AddEditTransactionScr
       _type = TransactionType.values[t['type'] as int];
       _amountCtrl.text = ((t['amountMinor'] as int) / 100).toStringAsFixed(2);
       _categoryId = t['categoryId'] as int?;
+      _goalId = t['goalId'] as int?;
       _date = DateTime.parse(t['date'] as String);
       _noteCtrl.text = (t['note'] as String?) ?? '';
     } else {
@@ -50,6 +53,7 @@ class _AddEditTransactionScreenState extends ConsumerState<AddEditTransactionScr
   @override
   Widget build(BuildContext context) {
     final catsAsync = ref.watch(categoriesProvider);
+    final goalsAsync = ref.watch(goalsProvider);
     return Scaffold(
       appBar: AppBar(title: Text(_isEdit ? 'Edit Transaction' : 'Add Transaction')),
       body: ListView(
@@ -62,7 +66,11 @@ class _AddEditTransactionScreenState extends ConsumerState<AddEditTransactionScr
               ButtonSegment(value: TransactionType.saving, label: Text('Saving'), icon: Icon(Icons.savings)),
             ],
             selected: {_type},
-            onSelectionChanged: (s) => setState(() => _type = s.first),
+            onSelectionChanged: (s) => setState(() {
+              _type = s.first;
+              if (_type != TransactionType.saving) _goalId = null;
+              if (_type == TransactionType.saving) _categoryId = null;
+            }),
           ),
           const SizedBox(height: 16),
           TextField(
@@ -71,23 +79,42 @@ class _AddEditTransactionScreenState extends ConsumerState<AddEditTransactionScr
             decoration: InputDecoration(labelText: 'Amount', prefixText: currencyPrefix()),
           ),
           const SizedBox(height: 16),
-          catsAsync.when(
-            loading: () => const LinearProgressIndicator(),
-            error: (e, _) => Text('Error: $e'),
-            data: (cats) {
-              final active = cats.where((c) => (c['isArchived'] as int) == 0).toList();
-              return DropdownButtonFormField<int>(
-                initialValue: _categoryId,
-                isExpanded: true,
-                decoration: const InputDecoration(labelText: 'Category'),
-                items: active.map((c) => DropdownMenuItem(
-                  value: c['id'] as int,
-                  child: Text(c['name'] as String),
-                )).toList(),
-                onChanged: (v) => setState(() => _categoryId = v),
-              );
-            },
-          ),
+          if (_type == TransactionType.saving)
+            goalsAsync.when(
+              loading: () => const LinearProgressIndicator(),
+              error: (e, _) => Text('Error: $e'),
+              data: (goals) {
+                final active = goals.where((g) => (g['status'] as int) == 0).toList();
+                return DropdownButtonFormField<int>(
+                  initialValue: _goalId,
+                  isExpanded: true,
+                  decoration: const InputDecoration(labelText: 'Goal'),
+                  items: active.map((g) => DropdownMenuItem(
+                    value: g['id'] as int,
+                    child: Text(g['name'] as String),
+                  )).toList(),
+                  onChanged: (v) => setState(() => _goalId = v),
+                );
+              },
+            )
+          else
+            catsAsync.when(
+              loading: () => const LinearProgressIndicator(),
+              error: (e, _) => Text('Error: $e'),
+              data: (cats) {
+                final active = cats.where((c) => (c['isArchived'] as int) == 0).toList();
+                return DropdownButtonFormField<int>(
+                  initialValue: _categoryId,
+                  isExpanded: true,
+                  decoration: const InputDecoration(labelText: 'Category'),
+                  items: active.map((c) => DropdownMenuItem(
+                    value: c['id'] as int,
+                    child: Text(c['name'] as String),
+                  )).toList(),
+                  onChanged: (v) => setState(() => _categoryId = v),
+                );
+              },
+            ),
           const SizedBox(height: 16),
           ListTile(
             contentPadding: EdgeInsets.zero,
@@ -126,7 +153,8 @@ class _AddEditTransactionScreenState extends ConsumerState<AddEditTransactionScr
     final row = {
       'type': _type.index,
       'amountMinor': minor,
-      'categoryId': _categoryId,
+      'categoryId': _type == TransactionType.saving ? null : _categoryId,
+      'goalId': _type == TransactionType.saving ? _goalId : null,
       'date': _date.toIso8601String(),
       'note': _noteCtrl.text.isEmpty ? null : _noteCtrl.text.trim(),
       'updatedAt': DateTime.now().toIso8601String(),

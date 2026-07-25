@@ -208,7 +208,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       final goalMinor = parseAmountToMinor(_goalAmountCtrl.text);
       final now = DateTime.now().toIso8601String();
       final dbInstance = await db.database;
-      await dbInstance.insert('goals', {
+      final goalId = await dbInstance.insert('goals', {
         'name': _goalNameCtrl.text.trim(),
         'targetAmountMinor': goalMinor > 0 ? goalMinor : null,
         'iconKey': 'flag',
@@ -217,6 +217,18 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         'sortOrder': 0,
         'createdAt': now,
       });
+      if (goalMinor > 0) {
+        final txnRepo = ref.read(transactionRepoProvider);
+        await txnRepo.insert({
+          'type': 2, // saving
+          'amountMinor': goalMinor,
+          'goalId': goalId,
+          'date': now,
+          'note': 'Initial contribution',
+          'createdAt': now,
+          'updatedAt': now,
+        });
+      }
     }
 
     await db.completeOnboarding();

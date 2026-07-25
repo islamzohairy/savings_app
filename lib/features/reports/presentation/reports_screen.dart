@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
+import '../../../core/date_utils.dart';
 import '../../../core/money.dart';
+import '../../../core/settings_provider.dart';
 import '../../transactions/application/transaction_provider.dart';
 
 class ReportsScreen extends ConsumerStatefulWidget {
@@ -13,42 +15,74 @@ class ReportsScreen extends ConsumerStatefulWidget {
 }
 
 class _ReportsScreenState extends ConsumerState<ReportsScreen> {
-  late DateTime _selectedMonth;
+  late DateTime _cycleStart;
+  late DateTime _cycleEnd;
   late Future<_ReportData> _future;
+  final List<Map<String, dynamic>> _topExpenses = [];
+  bool _hasMoreTopExpenses = true;
+  bool _loadingMore = false;
+  static const _topBatchSize = 50;
 
   @override
   void initState() {
     super.initState();
-    _selectedMonth = DateTime(DateTime.now().year, DateTime.now().month);
+    final monthStartDay = int.tryParse(ref.read(settingsProvider)['monthStartDay'] ?? '1') ?? 1;
+    final now = DateTime.now();
+    final (start, end) = monthDateRange(now, monthStartDay);
+    _cycleStart = start;
+    _cycleEnd = end;
     _future = _load();
   }
 
+  int get _monthStartDay => int.tryParse(ref.read(settingsProvider)['monthStartDay'] ?? '1') ?? 1;
+
   Future<_ReportData> _load() async {
     final txnRepo = ref.read(transactionRepoProvider);
-    final m = _selectedMonth;
-    final income = await txnRepo.monthTotal(0, m.month, m.year);
-    final expenses = await txnRepo.monthTotal(1, m.month, m.year);
+    final income = await txnRepo.monthTotal(0, _cycleStart, _cycleEnd);
+    final expenses = await txnRepo.monthTotal(1, _cycleStart, _cycleEnd);
     final net = income - expenses;
     final rate = income > 0 ? ((income - expenses) / income * 100).clamp(0.0, 100.0) : 0.0;
-    final breakdown = await txnRepo.categoryBreakdown(m.month, m.year);
-    final trend = await txnRepo.monthlyTrend(6);
-    final topExpenses = await txnRepo.topExpenses(m.month, m.year);
-    return _ReportData(income, expenses, net, rate, breakdown, trend, topExpenses);
+    final breakdown = await txnRepo.categoryBreakdown(_cycleStart, _cycleEnd);
+    final trend = await txnRepo.monthlyTrend(6, _cycleStart, _monthStartDay);
+    final topBatch = await txnRepo.topExpensesPaginated(_cycleStart, _cycleEnd, limit: _topBatchSize, offset: 0);
+    _topExpenses
+      ..clear()
+      ..addAll(topBatch);
+    _hasMoreTopExpenses = topBatch.length == _topBatchSize;
+    return _ReportData(income, expenses, net, rate, breakdown, trend, List.from(_topExpenses), _hasMoreTopExpenses);
   }
 
-  void _prevMonth() {
+  Future<void> _loadMoreTopExpenses() async {
+    if (_loadingMore || !_hasMoreTopExpenses) return;
+    setState(() => _loadingMore = true);
+    final txnRepo = ref.read(transactionRepoProvider);
+    final batch = await txnRepo.topExpensesPaginated(_cycleStart, _cycleEnd, limit: _topBatchSize, offset: _topExpenses.length);
     setState(() {
-      _selectedMonth = DateTime(_selectedMonth.year, _selectedMonth.month - 1);
+      _topExpenses.addAll(batch);
+      _hasMoreTopExpenses = batch.length == _topBatchSize;
+      _loadingMore = false;
+    });
+  }
+
+  void _prevCycle() {
+    final newStart = previousCycleStart(_cycleStart, _monthStartDay);
+    final (_, newEnd) = monthDateRange(newStart, _monthStartDay);
+    setState(() {
+      _cycleStart = newStart;
+      _cycleEnd = newEnd;
       _future = _load();
     });
   }
 
-  void _nextMonth() {
-    final next = DateTime(_selectedMonth.year, _selectedMonth.month + 1);
-    final now = DateTime(DateTime.now().year, DateTime.now().month);
-    if (!next.isAfter(now)) {
+  void _nextCycle() {
+    final newStart = nextCycleStart(_cycleStart, _monthStartDay);
+    final (_, newEnd) = monthDateRange(newStart, _monthStartDay);
+    final now = DateTime.now();
+    final (_, currentEnd) = monthDateRange(now, _monthStartDay);
+    if (!newStart.isAfter(currentEnd)) {
       setState(() {
-        _selectedMonth = next;
+        _cycleStart = newStart;
+        _cycleEnd = newEnd;
         _future = _load();
       });
     }
@@ -67,9 +101,10 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             padding: const EdgeInsets.all(16),
             children: [
               _MonthPicker(
-                month: _selectedMonth,
-                onPrev: _prevMonth,
-                onNext: _nextMonth,
+                cycleStart: _cycleStart,
+                cycleEnd: _cycleEnd,
+                onPrev: _prevCycle,
+                onNext: _nextCycle,
               ),
               const SizedBox(height: 16),
               _SummaryCard(income: d.income, expenses: d.expenses, net: d.net, rate: d.rate),
@@ -81,7 +116,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
               ],
               const SizedBox(height: 16),
               if (d.trend.isNotEmpty) ...[
-                Text('Savings Trend (6 months)', style: Theme.of(context).textTheme.titleMedium),
+                Text('Savings Trend (6 cycles)', style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: 8),
                 _TrendChart(data: d.trend),
               ],
@@ -95,11 +130,24 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                   subtitle: Text(t['categoryName'] as String? ?? 'Unknown'),
                   trailing: Text(DateFormat.MMMd().format(DateTime.parse(t['date'] as String))),
                 )),
+                if (_hasMoreTopExpenses)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: _loadingMore
+                        ? const Center(child: CircularProgressIndicator())
+                        : TextButton(
+                            onPressed: () async {
+                              await _loadMoreTopExpenses();
+                              setState(() {});
+                            },
+                            child: const Text('Load more'),
+                          ),
+                  ),
               ],
               if (d.breakdown.isEmpty && d.trend.isEmpty && d.topExpenses.isEmpty)
                 Center(child: Padding(
                   padding: const EdgeInsets.all(32),
-                  child: Text('No data for this month', style: Theme.of(context).textTheme.bodyLarge),
+                  child: Text('No data for this cycle', style: Theme.of(context).textTheme.bodyLarge),
                 )),
             ],
           );
@@ -113,25 +161,29 @@ class _ReportData {
   final int income, expenses, net;
   final double rate;
   final List<Map<String, dynamic>> breakdown, trend, topExpenses;
-  _ReportData(this.income, this.expenses, this.net, this.rate, this.breakdown, this.trend, this.topExpenses);
+  final bool hasMoreTopExpenses;
+  _ReportData(this.income, this.expenses, this.net, this.rate, this.breakdown, this.trend, this.topExpenses, this.hasMoreTopExpenses);
 }
 
 class _MonthPicker extends StatelessWidget {
-  const _MonthPicker({required this.month, required this.onPrev, required this.onNext});
-  final DateTime month;
+  const _MonthPicker({required this.cycleStart, required this.cycleEnd, required this.onPrev, required this.onNext});
+  final DateTime cycleStart, cycleEnd;
   final VoidCallback onPrev, onNext;
 
   @override
   Widget build(BuildContext context) {
-    final now = DateTime(DateTime.now().year, DateTime.now().month);
-    final isCurrentMonth = month.year == now.year && month.month == now.month;
+    final now = DateTime.now();
+    final isCurrentCycle = !cycleEnd.isBefore(DateTime(now.year, now.month, now.day));
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         IconButton(onPressed: onPrev, icon: const Icon(Icons.chevron_left)),
-        Text(DateFormat('MMMM yyyy').format(month), style: Theme.of(context).textTheme.titleLarge),
+        Text(
+          '${DateFormat('MMM d').format(cycleStart)} – ${DateFormat('MMM d, yyyy').format(cycleEnd)}',
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
         IconButton(
-          onPressed: isCurrentMonth ? null : onNext,
+          onPressed: isCurrentCycle ? null : onNext,
           icon: const Icon(Icons.chevron_right),
         ),
       ],

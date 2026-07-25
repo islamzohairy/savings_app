@@ -24,6 +24,11 @@ class GoalRepository {
     return db.query('goals', orderBy: 'sortOrder ASC');
   }
 
+  Future<List<Map<String, dynamic>>> getActive() async {
+    final db = await _db.database;
+    return db.query('goals', where: 'status = 0', orderBy: 'sortOrder ASC');
+  }
+
   Future<Map<String, dynamic>?> getById(int id) async {
     final db = await _db.database;
     final rows = await db.query('goals', where: 'id = ?', whereArgs: [id]);
@@ -72,6 +77,30 @@ class GoalRepository {
     await db.insert('transactions', {
       'type': 2, // saving
       'amountMinor': amountMinor,
+      'goalId': goalId,
+      'date': now,
+      'createdAt': now,
+      'updatedAt': now,
+    });
+    final goalRows = await db.query('goals', where: 'id = ?', whereArgs: [goalId]);
+    if (goalRows.isEmpty) return;
+    final goal = goalRows.first;
+    final target = goal['targetAmountMinor'] as int?;
+    final status = goal['status'] as int;
+    if (target != null && target > 0 && status == 0) {
+      final after = await currentAmount(goalId);
+      if (after >= target) {
+        await db.update('goals', {'status': 1}, where: 'id = ?', whereArgs: [goalId]);
+      }
+    }
+  }
+
+  Future<void> withdraw(int goalId, int amountMinor) async {
+    final db = await _db.database;
+    final now = DateTime.now().toIso8601String();
+    await db.insert('transactions', {
+      'type': 2, // saving (negative = withdrawal)
+      'amountMinor': -amountMinor,
       'goalId': goalId,
       'date': now,
       'createdAt': now,

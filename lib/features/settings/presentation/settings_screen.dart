@@ -1,6 +1,9 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:local_auth/local_auth.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart' as p;
 import 'package:share_plus/share_plus.dart';
@@ -50,6 +53,13 @@ class SettingsScreen extends ConsumerWidget {
             value: appLockEnabled,
             onChanged: (v) => ref.read(settingsProvider.notifier).set('appLockEnabled', '$v'),
           ),
+          if (appLockEnabled)
+            ListTile(
+              title: const Text('Change PIN'),
+              subtitle: const Text('Update your app lock PIN'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => _changePin(context),
+            ),
           const Divider(),
           _section('Data'),
           ListTile(
@@ -186,6 +196,100 @@ class SettingsScreen extends ConsumerWidget {
       }
     } catch (e) {
       if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Restore failed: $e')));
+    }
+  }
+
+  Future<void> _changePin(BuildContext context) async {
+    final storage = const FlutterSecureStorage();
+    final storedPin = await storage.read(key: 'app_lock_pin');
+    if (storedPin == null || storedPin.isEmpty) return;
+
+    // Try biometric first
+    final bioEnabled = (await AppDatabase.instance.getSetting('biometricEnabled')) == 'true';
+    if (bioEnabled) {
+      try {
+        final auth = LocalAuthentication();
+        final canCheck = await auth.canCheckBiometrics;
+        if (canCheck) {
+          final didAuth = await auth.authenticate(localizedReason: 'Authenticate to change PIN');
+          if (!didAuth) return;
+          if (context.mounted) await _showSetPinDialog(context, storage);
+          return;
+        }
+      } on PlatformException {
+        // fall through to PIN verification
+      }
+    }
+
+    // Verify current PIN via dialog
+    if (!context.mounted) return;
+    final pinCtrl = TextEditingController();
+    final verified = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Verify Current PIN'),
+        content: TextField(
+          controller: pinCtrl,
+          keyboardType: TextInputType.number,
+          obscureText: true,
+          maxLength: 4,
+          decoration: const InputDecoration(counterText: ''),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, pinCtrl.text == storedPin), child: const Text('Verify')),
+        ],
+      ),
+    );
+    if (verified != true) return;
+    if (context.mounted) await _showSetPinDialog(context, storage);
+  }
+
+  Future<void> _showSetPinDialog(BuildContext context, FlutterSecureStorage storage) async {
+    final pinCtrl = TextEditingController();
+    final confirmCtrl = TextEditingController();
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Set New PIN'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: pinCtrl,
+              keyboardType: TextInputType.number,
+              obscureText: true,
+              maxLength: 4,
+              decoration: const InputDecoration(labelText: 'New PIN', counterText: ''),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: confirmCtrl,
+              keyboardType: TextInputType.number,
+              obscureText: true,
+              maxLength: 4,
+              decoration: const InputDecoration(labelText: 'Confirm PIN', counterText: ''),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          FilledButton(
+            onPressed: () {
+              if (pinCtrl.text.length == 4 && pinCtrl.text == confirmCtrl.text) {
+                Navigator.pop(ctx, true);
+              } else if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('PINs must match and be 4 digits')));
+              }
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+    if (result == true) {
+      await storage.write(key: 'app_lock_pin', value: pinCtrl.text);
+      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('PIN updated')));
     }
   }
 }
