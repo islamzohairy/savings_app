@@ -153,7 +153,7 @@ class AppDatabase {
 
   Future<void> setSetting(String key, String value) async {
     final db = await database;
-    await db.update('settings', {'value': value}, where: 'key = ?', whereArgs: [key]);
+    await db.insert('settings', {'key': key, 'value': value}, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
   Future<bool> hasCompletedOnboarding() async {
