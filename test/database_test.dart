@@ -302,4 +302,84 @@ void main() {
       expect(goal!['status'], 0, reason: 'open-ended goal must stay active');
     });
   });
+
+  group('pagination correctness', () {
+    test('transactions keyset pagination: no dupes, no gaps, covers all rows', () async {
+      final now = DateTime.now();
+      for (var i = 0; i < 120; i++) {
+        final date = now.subtract(Duration(hours: i));
+        await insertTxn(
+          type: i % 2 == 0 ? 0 : 1,
+          amountMinor: (i + 1) * 100,
+          date: date,
+        );
+      }
+
+      final allIds = <int>{};
+      String? cursorDate;
+      int? cursorId;
+      var totalFetched = 0;
+
+      while (true) {
+        final batch = await repo.getAllPaginated(limit: 50, cursorDate: cursorDate, cursorId: cursorId);
+        if (batch.isEmpty) break;
+        totalFetched += batch.length;
+        for (final row in batch) {
+          final id = row['id'] as int;
+          expect(allIds.add(id), isTrue, reason: 'duplicate id=$id found');
+        }
+        cursorDate = batch.last['date'] as String;
+        cursorId = batch.last['id'] as int;
+        if (batch.length < 50) break;
+      }
+
+      expect(totalFetched, 120, reason: 'all 120 transactions must be fetched across pages');
+    });
+
+    test('goal history keyset pagination: no dupes, no gaps, covers all rows', () async {
+      final goalRepo = GoalRepository();
+      final now = DateTime.now().toIso8601String();
+      final goalId = await goalRepo.insert({
+        'name': 'Pagination Goal',
+        'targetAmountMinor': 100000,
+        'iconKey': 'flag',
+        'colorHex': '3F51B5',
+        'status': 0,
+        'sortOrder': 0,
+        'createdAt': now,
+      });
+
+      for (var i = 0; i < 65; i++) {
+        final date = DateTime.now().subtract(Duration(hours: i)).toIso8601String();
+        await database.insert('transactions', {
+          'type': 2,
+          'amountMinor': (i + 1) * 100,
+          'goalId': goalId,
+          'date': date,
+          'createdAt': date,
+          'updatedAt': date,
+        });
+      }
+
+      final allIds = <int>{};
+      String? cursorDate;
+      int? cursorId;
+      var totalFetched = 0;
+
+      while (true) {
+        final batch = await repo.goalHistoryPaginated(goalId, limit: 50, cursorDate: cursorDate, cursorId: cursorId);
+        if (batch.isEmpty) break;
+        totalFetched += batch.length;
+        for (final row in batch) {
+          final id = row['id'] as int;
+          expect(allIds.add(id), isTrue, reason: 'duplicate goal history id=$id found');
+        }
+        cursorDate = batch.last['date'] as String;
+        cursorId = batch.last['id'] as int;
+        if (batch.length < 50) break;
+      }
+
+      expect(totalFetched, 65, reason: 'all 65 goal history transactions must be fetched');
+    });
+  });
 }

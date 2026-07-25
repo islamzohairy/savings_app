@@ -11,7 +11,7 @@ class SettingsNotifier extends Notifier<Map<String, String>> {
 
   Future<void> load() async {
     final db = AppDatabase.instance;
-    final keys = ['currencyCode', 'themeMode', 'monthStartDay', 'firstDayOfWeek', 'appLockEnabled', 'biometricEnabled', 'hasCompletedOnboarding'];
+    final keys = ['currencyCode', 'themeMode', 'monthStartDay', 'firstDayOfWeek', 'appLockEnabled', 'hasCompletedOnboarding'];
     final map = <String, String>{};
     for (final k in keys) {
       final v = await db.getSetting(k);

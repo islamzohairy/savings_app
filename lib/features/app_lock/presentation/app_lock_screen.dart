@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:local_auth/local_auth.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import '../../../core/db/database.dart';
 
 class AppLockScreen extends StatefulWidget {
   const AppLockScreen({super.key, this.onUnlocked});
@@ -14,7 +11,6 @@ class AppLockScreen extends StatefulWidget {
 
 class _AppLockScreenState extends State<AppLockScreen> {
   final _storage = const FlutterSecureStorage();
-  final _auth = LocalAuthentication();
   bool _isSetup = false;
   String _pin = '';
   String _enteredPin = '';
@@ -30,25 +26,6 @@ class _AppLockScreenState extends State<AppLockScreen> {
     final existingPin = await _storage.read(key: 'app_lock_pin');
     _isSetup = existingPin != null && existingPin.isNotEmpty;
     setState(() {});
-
-    // Try biometric first if enabled
-    final bioEnabled = (await AppDatabase.instance.getSetting('biometricEnabled')) == 'true';
-    if (bioEnabled) {
-      await _tryBiometric();
-    }
-  }
-
-  Future<void> _tryBiometric() async {
-    try {
-      final canCheck = await _auth.canCheckBiometrics;
-      if (!canCheck) return;
-      final didAuth = await _auth.authenticate(
-        localizedReason: 'Unlock Savings App',
-      );
-      if (didAuth && mounted) widget.onUnlocked?.call();
-    } on PlatformException {
-      // fall through to PIN
-    }
   }
 
   @override
@@ -77,11 +54,6 @@ class _AppLockScreenState extends State<AppLockScreen> {
                       _pinDots(),
                       SizedBox(height: isSmall ? 16 : 24),
                       _keypad(isSmall: isSmall),
-                      SizedBox(height: isSmall ? 8 : 16),
-                      TextButton(
-                        onPressed: _tryBiometric,
-                        child: const Text('Use Biometric'),
-                      ),
                     ],
                   ),
                 ),

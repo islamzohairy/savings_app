@@ -4,7 +4,6 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 import '../../../core/date_utils.dart';
 import '../../../core/money.dart';
-import '../../../core/settings_provider.dart';
 import '../../transactions/application/transaction_provider.dart';
 
 class ReportsScreen extends ConsumerStatefulWidget {
@@ -22,19 +21,18 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   bool _hasMoreTopExpenses = true;
   bool _loadingMore = false;
   static const _topBatchSize = 50;
+  int? _topCursorAmount;
+  int? _topCursorId;
 
   @override
   void initState() {
     super.initState();
-    final monthStartDay = int.tryParse(ref.read(settingsProvider)['monthStartDay'] ?? '1') ?? 1;
     final now = DateTime.now();
-    final (start, end) = monthDateRange(now, monthStartDay);
+    final (start, end) = monthDateRange(now, 1);
     _cycleStart = start;
     _cycleEnd = end;
     _future = _load();
   }
-
-  int get _monthStartDay => int.tryParse(ref.read(settingsProvider)['monthStartDay'] ?? '1') ?? 1;
 
   Future<_ReportData> _load() async {
     final txnRepo = ref.read(transactionRepoProvider);
@@ -43,12 +41,16 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     final net = income - expenses;
     final rate = income > 0 ? ((income - expenses) / income * 100).clamp(0.0, 100.0) : 0.0;
     final breakdown = await txnRepo.categoryBreakdown(_cycleStart, _cycleEnd);
-    final trend = await txnRepo.monthlyTrend(6, _cycleStart, _monthStartDay);
-    final topBatch = await txnRepo.topExpensesPaginated(_cycleStart, _cycleEnd, limit: _topBatchSize, offset: 0);
+    final trend = await txnRepo.monthlyTrend(6, _cycleStart, 1);
+    final topBatch = await txnRepo.topExpensesPaginated(_cycleStart, _cycleEnd, limit: _topBatchSize);
     _topExpenses
       ..clear()
       ..addAll(topBatch);
     _hasMoreTopExpenses = topBatch.length == _topBatchSize;
+    if (_hasMoreTopExpenses && topBatch.isNotEmpty) {
+      _topCursorAmount = topBatch.last['amountMinor'] as int;
+      _topCursorId = topBatch.last['id'] as int;
+    }
     return _ReportData(income, expenses, net, rate, breakdown, trend, List.from(_topExpenses), _hasMoreTopExpenses);
   }
 
@@ -56,17 +58,21 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     if (_loadingMore || !_hasMoreTopExpenses) return;
     setState(() => _loadingMore = true);
     final txnRepo = ref.read(transactionRepoProvider);
-    final batch = await txnRepo.topExpensesPaginated(_cycleStart, _cycleEnd, limit: _topBatchSize, offset: _topExpenses.length);
+    final batch = await txnRepo.topExpensesPaginated(_cycleStart, _cycleEnd, limit: _topBatchSize, cursorAmountMinor: _topCursorAmount, cursorId: _topCursorId);
     setState(() {
       _topExpenses.addAll(batch);
       _hasMoreTopExpenses = batch.length == _topBatchSize;
+      if (_hasMoreTopExpenses && batch.isNotEmpty) {
+        _topCursorAmount = batch.last['amountMinor'] as int;
+        _topCursorId = batch.last['id'] as int;
+      }
       _loadingMore = false;
     });
   }
 
   void _prevCycle() {
-    final newStart = previousCycleStart(_cycleStart, _monthStartDay);
-    final (_, newEnd) = monthDateRange(newStart, _monthStartDay);
+    final newStart = previousCycleStart(_cycleStart, 1);
+    final (_, newEnd) = monthDateRange(newStart, 1);
     setState(() {
       _cycleStart = newStart;
       _cycleEnd = newEnd;
@@ -75,10 +81,10 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   }
 
   void _nextCycle() {
-    final newStart = nextCycleStart(_cycleStart, _monthStartDay);
-    final (_, newEnd) = monthDateRange(newStart, _monthStartDay);
+    final newStart = nextCycleStart(_cycleStart, 1);
+    final (_, newEnd) = monthDateRange(newStart, 1);
     final now = DateTime.now();
-    final (_, currentEnd) = monthDateRange(now, _monthStartDay);
+    final (_, currentEnd) = monthDateRange(now, 1);
     if (!newStart.isAfter(currentEnd)) {
       setState(() {
         _cycleStart = newStart;
@@ -178,9 +184,12 @@ class _MonthPicker extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         IconButton(onPressed: onPrev, icon: const Icon(Icons.chevron_left)),
-        Text(
-          '${DateFormat('MMM d').format(cycleStart)} – ${DateFormat('MMM d, yyyy').format(cycleEnd)}',
-          style: Theme.of(context).textTheme.titleMedium,
+        Flexible(
+          child: Text(
+            '${DateFormat('MMM d').format(cycleStart)} – ${DateFormat('MMM d, yyyy').format(cycleEnd)}',
+            style: Theme.of(context).textTheme.titleMedium,
+            overflow: TextOverflow.ellipsis,
+          ),
         ),
         IconButton(
           onPressed: isCurrentCycle ? null : onNext,
@@ -238,7 +247,10 @@ class _Stat extends StatelessWidget {
       children: [
         Text(label, style: Theme.of(context).textTheme.bodySmall),
         const SizedBox(height: 4),
-        Text(formatAmount(amount), style: TextStyle(color: color, fontWeight: FontWeight.bold)),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(formatAmount(amount), style: TextStyle(color: color, fontWeight: FontWeight.bold)),
+        ),
       ],
     );
   }

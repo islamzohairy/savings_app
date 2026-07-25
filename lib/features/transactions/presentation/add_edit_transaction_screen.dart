@@ -103,10 +103,11 @@ class _AddEditTransactionScreenState extends ConsumerState<AddEditTransactionScr
               error: (e, _) => Text('Error: $e'),
               data: (cats) {
                 final active = cats.where((c) => (c['isArchived'] as int) == 0).toList();
+                final sourceLabel = _type == TransactionType.income ? 'Source' : 'Category';
                 return DropdownButtonFormField<int>(
                   initialValue: _categoryId,
                   isExpanded: true,
-                  decoration: const InputDecoration(labelText: 'Category'),
+                  decoration: InputDecoration(labelText: sourceLabel),
                   items: active.map((c) => DropdownMenuItem(
                     value: c['id'] as int,
                     child: Text(c['name'] as String),

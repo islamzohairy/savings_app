@@ -24,7 +24,8 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
   bool _loading = true;
   bool _hasMore = true;
   static const _batchSize = 50;
-  int _offset = 0;
+  String? _cursorDate;
+  int? _cursorId;
   final _scrollCtrl = ScrollController();
 
   @override
@@ -41,13 +42,17 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
   }
 
   Future<void> _loadInitial() async {
-    _offset = 0;
+    _cursorDate = null;
+    _cursorId = null;
     _txns.clear();
     final repo = ref.read(transactionRepoProvider);
-    final batch = await repo.getAllPaginated(limit: _batchSize, offset: 0);
+    final batch = await repo.getAllPaginated(limit: _batchSize);
     _txns.addAll(batch);
     _hasMore = batch.length == _batchSize;
-    _offset = batch.length;
+    if (_hasMore && batch.isNotEmpty) {
+      _cursorDate = batch.last['date'] as String;
+      _cursorId = batch.last['id'] as int;
+    }
     setState(() => _loading = false);
   }
 
@@ -60,11 +65,14 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
   Future<void> _loadMore() async {
     setState(() => _loading = true);
     final repo = ref.read(transactionRepoProvider);
-    final batch = await repo.getAllPaginated(limit: _batchSize, offset: _offset);
+    final batch = await repo.getAllPaginated(limit: _batchSize, cursorDate: _cursorDate, cursorId: _cursorId);
     setState(() {
       _txns.addAll(batch);
       _hasMore = batch.length == _batchSize;
-      _offset += batch.length;
+      if (_hasMore && batch.isNotEmpty) {
+        _cursorDate = batch.last['date'] as String;
+        _cursorId = batch.last['id'] as int;
+      }
       _loading = false;
     });
   }

@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../core/date_utils.dart';
 import '../../../core/money.dart';
-import '../../../core/settings_provider.dart';
 import '../../transactions/application/transaction_provider.dart';
 import '../../goals/application/goal_provider.dart';
 
@@ -20,9 +19,8 @@ final dashboardDataProvider = FutureProvider<_DashboardData>((ref) async {
   ref.watch(_dashboardRefreshProvider);
   final txnRepo = ref.read(transactionRepoProvider);
   final goalRepo = ref.read(goalRepoProvider);
-  final monthStartDay = int.tryParse(ref.read(settingsProvider)['monthStartDay'] ?? '1') ?? 1;
   final now = DateTime.now();
-  final (start, end) = monthDateRange(now, monthStartDay);
+  final (start, end) = monthDateRange(now, 1);
   final spendable = await txnRepo.spendableBalance();
   final goalBals = await txnRepo.totalGoalBalances();
   final income = await txnRepo.monthTotal(0, start, end);
@@ -136,7 +134,11 @@ class _BalanceCard extends StatelessWidget {
           children: [
             Text('Spendable Balance', style: Theme.of(context).textTheme.labelLarge),
             const SizedBox(height: 4),
-            Text(formatAmount(spendableBalance), style: Theme.of(context).textTheme.headlineLarge?.copyWith(color: color)),
+            FittedBox(
+              alignment: Alignment.centerLeft,
+              fit: BoxFit.scaleDown,
+              child: Text(formatAmount(spendableBalance), style: Theme.of(context).textTheme.headlineLarge?.copyWith(color: color)),
+            ),
             if (goalBalances > 0) ...[
               const SizedBox(height: 4),
               Text('In Goals: ${formatAmount(goalBalances)}', style: Theme.of(context).textTheme.bodyMedium?.copyWith(
@@ -171,8 +173,10 @@ class _MonthSummaryCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                Text('$label Summary', style: Theme.of(context).textTheme.titleMedium),
-                const Spacer(),
+                Flexible(
+                  child: Text('$label Summary', style: Theme.of(context).textTheme.titleMedium, overflow: TextOverflow.ellipsis),
+                ),
+                const SizedBox(width: 8),
                 SegmentedButton<bool>(
                   segments: const [
                     ButtonSegment(value: false, label: Text('Monthly')),
@@ -234,7 +238,10 @@ class _StatColumn extends StatelessWidget {
       children: [
         Text(label, style: Theme.of(context).textTheme.bodySmall),
         const SizedBox(height: 4),
-        Text(formatAmount(amount), style: Theme.of(context).textTheme.titleSmall?.copyWith(color: color)),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(formatAmount(amount), style: Theme.of(context).textTheme.titleSmall?.copyWith(color: color)),
+        ),
       ],
     );
   }

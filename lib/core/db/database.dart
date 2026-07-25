@@ -128,7 +128,6 @@ class AppDatabase {
       'firstDayOfWeek': '1',
       'themeMode': 'system',
       'appLockEnabled': 'false',
-      'biometricEnabled': 'false',
       'hasCompletedOnboarding': 'false',
     };
     for (final entry in settings.entries) {

@@ -155,16 +155,27 @@ class TransactionRepository {
     return Sqflite.firstIntValue(result) ?? 0;
   }
 
-  Future<List<Map<String, dynamic>>> getAllPaginated({int limit = 50, int offset = 0}) async {
+  Future<List<Map<String, dynamic>>> getAllPaginated({int limit = 50, String? cursorDate, int? cursorId}) async {
     final db = await _db.database;
+    if (cursorDate == null || cursorId == null) {
+      return db.rawQuery('''
+        SELECT t.*, c.name AS categoryName, g.name AS goalName
+        FROM transactions t
+        LEFT JOIN categories c ON t.categoryId = c.id
+        LEFT JOIN goals g ON t.goalId = g.id
+        ORDER BY t.date DESC, t.id DESC
+        LIMIT ?
+      ''', [limit]);
+    }
     return db.rawQuery('''
       SELECT t.*, c.name AS categoryName, g.name AS goalName
       FROM transactions t
       LEFT JOIN categories c ON t.categoryId = c.id
       LEFT JOIN goals g ON t.goalId = g.id
+      WHERE (t.date < ?) OR (t.date = ? AND t.id < ?)
       ORDER BY t.date DESC, t.id DESC
-      LIMIT ? OFFSET ?
-    ''', [limit, offset]);
+      LIMIT ?
+    ''', [cursorDate, cursorDate, cursorId, limit]);
   }
 
   Future<int> totalCount() async {
@@ -173,16 +184,27 @@ class TransactionRepository {
     return Sqflite.firstIntValue(result) ?? 0;
   }
 
-  Future<List<Map<String, dynamic>>> topExpensesPaginated(DateTime start, DateTime end, {int limit = 50, int offset = 0}) async {
+  Future<List<Map<String, dynamic>>> topExpensesPaginated(DateTime start, DateTime end, {int limit = 50, int? cursorAmountMinor, int? cursorId}) async {
     final db = await _db.database;
+    if (cursorAmountMinor == null || cursorId == null) {
+      return db.rawQuery('''
+        SELECT t.*, c.name AS categoryName
+        FROM transactions t
+        LEFT JOIN categories c ON t.categoryId = c.id
+        WHERE t.type = 1 AND t.date >= ? AND t.date <= ?
+        ORDER BY t.amountMinor DESC, t.id DESC
+        LIMIT ?
+      ''', [start.toIso8601String(), end.toIso8601String(), limit]);
+    }
     return db.rawQuery('''
       SELECT t.*, c.name AS categoryName
       FROM transactions t
       LEFT JOIN categories c ON t.categoryId = c.id
       WHERE t.type = 1 AND t.date >= ? AND t.date <= ?
-      ORDER BY t.amountMinor DESC
-      LIMIT ? OFFSET ?
-    ''', [start.toIso8601String(), end.toIso8601String(), limit, offset]);
+        AND ((t.amountMinor < ?) OR (t.amountMinor = ? AND t.id < ?))
+      ORDER BY t.amountMinor DESC, t.id DESC
+      LIMIT ?
+    ''', [start.toIso8601String(), end.toIso8601String(), cursorAmountMinor, cursorAmountMinor, cursorId, limit]);
   }
 
   Future<int> topExpensesCount(DateTime start, DateTime end) async {
@@ -192,5 +214,24 @@ class TransactionRepository {
       [start.toIso8601String(), end.toIso8601String()],
     );
     return Sqflite.firstIntValue(result) ?? 0;
+  }
+
+  Future<List<Map<String, dynamic>>> goalHistoryPaginated(int goalId, {int limit = 50, String? cursorDate, int? cursorId}) async {
+    final db = await _db.database;
+    if (cursorDate == null || cursorId == null) {
+      return db.rawQuery('''
+        SELECT * FROM transactions
+        WHERE goalId = ? AND type = 2
+        ORDER BY date DESC, id DESC
+        LIMIT ?
+      ''', [goalId, limit]);
+    }
+    return db.rawQuery('''
+      SELECT * FROM transactions
+      WHERE goalId = ? AND type = 2
+        AND ((date < ?) OR (date = ? AND id < ?))
+      ORDER BY date DESC, id DESC
+      LIMIT ?
+    ''', [goalId, cursorDate, cursorDate, cursorId, limit]);
   }
 }

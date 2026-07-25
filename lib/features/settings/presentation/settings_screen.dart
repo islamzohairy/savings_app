@@ -1,16 +1,13 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:local_auth/local_auth.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart' as p;
 import 'package:share_plus/share_plus.dart';
 import 'package:file_picker/file_picker.dart';
 import '../../../core/settings_provider.dart';
 import '../../../core/db/database.dart';
-import '../../dashboard/presentation/dashboard_screen.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -20,7 +17,6 @@ class SettingsScreen extends ConsumerWidget {
     final settings = ref.watch(settingsProvider);
     final currency = settings['currencyCode'] ?? 'USD';
     final themeMode = settings['themeMode'] ?? 'system';
-    final monthStartDay = int.tryParse(settings['monthStartDay'] ?? '1') ?? 1;
     final appLockEnabled = settings['appLockEnabled'] == 'true';
 
     return Scaffold(
@@ -40,17 +36,11 @@ class SettingsScreen extends ConsumerWidget {
             trailing: const Icon(Icons.chevron_right),
             onTap: () => _pickTheme(context, ref),
           ),
-          ListTile(
-            title: const Text('Month Start Day'),
-            subtitle: Text('Day $monthStartDay'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => _pickMonthStartDay(context, ref),
-          ),
           const Divider(),
           _section('Security'),
           SwitchListTile(
             title: const Text('App Lock'),
-            subtitle: const Text('Require PIN or biometric on launch'),
+            subtitle: const Text('Require PIN on launch'),
             value: appLockEnabled,
             onChanged: (v) => ref.read(settingsProvider.notifier).set('appLockEnabled', '$v'),
           ),
@@ -129,38 +119,6 @@ class SettingsScreen extends ConsumerWidget {
     }
   }
 
-  Future<void> _pickMonthStartDay(BuildContext context, WidgetRef ref) async {
-    final day = await showDialog<int>(
-      context: context,
-      builder: (ctx) => Dialog(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('Month Start Day', style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: 8),
-              SizedBox(
-                height: 300,
-                child: ListView.builder(
-                  itemCount: 28,
-                  itemBuilder: (ctx, i) => ListTile(
-                    title: Text('${i + 1}'),
-                    onTap: () => Navigator.pop(ctx, i + 1),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-    if (day != null) {
-      await ref.read(settingsProvider.notifier).set('monthStartDay', '$day');
-      refreshDashboard(ref);
-    }
-  }
-
   Future<void> _backup() async {
     try {
       final dir = await getDatabasesPath();
@@ -206,24 +164,6 @@ class SettingsScreen extends ConsumerWidget {
     final storedPin = await storage.read(key: 'app_lock_pin');
     if (storedPin == null || storedPin.isEmpty) return;
 
-    // Try biometric first
-    final bioEnabled = (await AppDatabase.instance.getSetting('biometricEnabled')) == 'true';
-    if (bioEnabled) {
-      try {
-        final auth = LocalAuthentication();
-        final canCheck = await auth.canCheckBiometrics;
-        if (canCheck) {
-          final didAuth = await auth.authenticate(localizedReason: 'Authenticate to change PIN');
-          if (!didAuth) return;
-          if (context.mounted) await _showSetPinDialog(context, storage);
-          return;
-        }
-      } on PlatformException {
-        // fall through to PIN verification
-      }
-    }
-
-    // Verify current PIN via dialog
     if (!context.mounted) return;
     final pinCtrl = TextEditingController();
     final verified = await showDialog<bool>(

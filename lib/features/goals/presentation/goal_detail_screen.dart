@@ -71,7 +71,7 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
           if (target != null) ...[
             LinearProgressIndicator(value: progress, minHeight: 12, color: color),
             const SizedBox(height: 8),
-            Text('${formatAmount(_currentAmount)} / ${formatAmount(target)}', style: Theme.of(context).textTheme.titleMedium),
+            Text('${formatAmount(_currentAmount)} / ${formatAmount(target)}', style: Theme.of(context).textTheme.titleMedium, overflow: TextOverflow.ellipsis),
             Text('${(progress * 100).toStringAsFixed(1)}% saved'),
             if (status == GoalStatus.completed && _currentAmount > target) ...[
               const SizedBox(height: 8),
@@ -81,7 +81,11 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
               ),
             ],
           ] else ...[
-            Text(formatAmount(_currentAmount), style: Theme.of(context).textTheme.headlineMedium),
+            FittedBox(
+              alignment: Alignment.centerLeft,
+              fit: BoxFit.scaleDown,
+              child: Text(formatAmount(_currentAmount), style: Theme.of(context).textTheme.headlineMedium),
+            ),
             const Text('Saved so far'),
           ],
           if (_projected != null) ...[
@@ -257,58 +261,104 @@ class _GoalHistory extends ConsumerStatefulWidget {
 }
 
 class _GoalHistoryState extends ConsumerState<_GoalHistory> {
-  List<Map<String, dynamic>> _txns = [];
+  final List<Map<String, dynamic>> _txns = [];
   bool _loading = true;
+  bool _hasMore = true;
+  static const _batchSize = 50;
+  String? _cursorDate;
+  int? _cursorId;
+  final _scrollCtrl = ScrollController();
 
   @override
   void initState() {
     super.initState();
-    _load();
+    _loadInitial();
+    _scrollCtrl.addListener(_onScroll);
   }
 
-  Future<void> _load() async {
-    final db = await AppDatabase.instance.database;
-    final rows = await db.rawQuery(
-      'SELECT * FROM transactions WHERE goalId = ? AND type = 2 ORDER BY date DESC, id DESC',
-      [widget.goalId],
-    );
-    if (mounted) setState(() { _txns = rows; _loading = false; });
+  @override
+  void dispose() {
+    _scrollCtrl.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollCtrl.position.pixels >= _scrollCtrl.position.maxScrollExtent - 200 && !_loading && _hasMore) {
+      _loadMore();
+    }
+  }
+
+  Future<void> _loadInitial() async {
+    _cursorDate = null;
+    _cursorId = null;
+    _txns.clear();
+    final repo = ref.read(transactionRepoProvider);
+    final batch = await repo.goalHistoryPaginated(widget.goalId, limit: _batchSize);
+    _txns.addAll(batch);
+    _hasMore = batch.length == _batchSize;
+    if (_hasMore && batch.isNotEmpty) {
+      _cursorDate = batch.last['date'] as String;
+      _cursorId = batch.last['id'] as int;
+    }
+    if (mounted) setState(() => _loading = false);
+  }
+
+  Future<void> _loadMore() async {
+    setState(() => _loading = true);
+    final repo = ref.read(transactionRepoProvider);
+    final batch = await repo.goalHistoryPaginated(widget.goalId, limit: _batchSize, cursorDate: _cursorDate, cursorId: _cursorId);
+    setState(() {
+      _txns.addAll(batch);
+      _hasMore = batch.length == _batchSize;
+      if (_hasMore && batch.isNotEmpty) {
+        _cursorDate = batch.last['date'] as String;
+        _cursorId = batch.last['id'] as int;
+      }
+      _loading = false;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) return const LinearProgressIndicator();
+    if (_loading && _txns.isEmpty) return const LinearProgressIndicator();
     if (_txns.isEmpty) return const Text('No contributions yet');
     return Column(
-      children: _txns.map((t) {
-        final amount = t['amountMinor'] as int;
-        final isWithdrawal = amount < 0;
-        final date = DateTime.parse(t['date'] as String);
-        return ListTile(
-          dense: true,
-          contentPadding: EdgeInsets.zero,
-          leading: CircleAvatar(
-            radius: 16,
-            backgroundColor: isWithdrawal
-                ? Theme.of(context).colorScheme.error.withAlpha(30)
-                : Theme.of(context).colorScheme.tertiary.withAlpha(30),
-            child: Icon(
-              isWithdrawal ? Icons.arrow_upward : Icons.arrow_downward,
-              size: 16,
-              color: isWithdrawal ? Theme.of(context).colorScheme.error : Theme.of(context).colorScheme.tertiary,
+      children: [
+        ..._txns.map((t) {
+          final amount = t['amountMinor'] as int;
+          final isWithdrawal = amount < 0;
+          final date = DateTime.parse(t['date'] as String);
+          return ListTile(
+            dense: true,
+            contentPadding: EdgeInsets.zero,
+            leading: CircleAvatar(
+              radius: 16,
+              backgroundColor: isWithdrawal
+                  ? Theme.of(context).colorScheme.error.withAlpha(30)
+                  : Theme.of(context).colorScheme.tertiary.withAlpha(30),
+              child: Icon(
+                isWithdrawal ? Icons.arrow_upward : Icons.arrow_downward,
+                size: 16,
+                color: isWithdrawal ? Theme.of(context).colorScheme.error : Theme.of(context).colorScheme.tertiary,
+              ),
             ),
+            title: Text(formatAmount(amount)),
+            subtitle: Text(DateFormat.yMMMd().format(date)),
+            trailing: PopupMenuButton<String>(
+              onSelected: (v) => _handleTxnMenu(v, t),
+              itemBuilder: (_) => [
+                const PopupMenuItem(value: 'edit', child: Text('Edit')),
+                const PopupMenuItem(value: 'delete', child: Text('Delete')),
+              ],
+            ),
+          );
+        }),
+        if (_loading && _txns.isNotEmpty)
+          const Padding(
+            padding: EdgeInsets.all(16),
+            child: Center(child: CircularProgressIndicator()),
           ),
-          title: Text(formatAmount(amount)),
-          subtitle: Text(DateFormat.yMMMd().format(date)),
-          trailing: PopupMenuButton<String>(
-            onSelected: (v) => _handleTxnMenu(v, t),
-            itemBuilder: (_) => [
-              const PopupMenuItem(value: 'edit', child: Text('Edit')),
-              const PopupMenuItem(value: 'delete', child: Text('Delete')),
-            ],
-          ),
-        );
-      }).toList(),
+      ],
     );
   }
 
@@ -326,7 +376,7 @@ class _GoalHistoryState extends ConsumerState<_GoalHistory> {
         refreshGoals(ref);
       }
     }
-    await _load();
+    await _loadInitial();
     widget.onRefresh();
   }
 }
