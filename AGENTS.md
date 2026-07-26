@@ -62,12 +62,74 @@ Feature-first, three layers per feature: `data/` (repo), `application/` (provide
 Categories (`/categories`) is not in the nav — reached via the Activity screen's category icon.
 
 ## Conventions
-- All money: `int` in minor units (cents). Never `double` for stored/summed amounts.
-- Refresh: domain-scoped `invalidate*()` using `ref.invalidate()`.
-- Enums: `TransactionType` (income/expense/saving), `GoalStatus` (active/paused/completed/archived).
-- Pure functions: `savingsRate()`, `goalProgress()`, `colorFromHex()` in `lib/core/calculations.dart`.
-- DB tables: `categories`, `transactions`, `goals`, `settings` (key-value).
-- Screen naming: "Activity" throughout (list screen, add/edit dialogs, delete confirmation, empty state, Semantics labels).
+
+### Established rules — do not relitigate or regress
+
+- **Money:** always `int` in minor units. Never `double` anywhere an amount is stored, summed, or passed between layers.
+- **One source of truth for cross-cutting calculations:** date/month boundaries go through `monthDateRange` only; aggregation queries (month totals, category breakdowns, trends) live in one shared repository consumed by both Dashboard and Reports — never reimplemented per-feature.
+- **Reactivity:** domain-scoped invalidation via `ref.invalidate()` on the specific providers a write affects. Never a single global refresh counter that everything depends on.
+- **Typed enums, not raw ints:** `TransactionType`, `GoalStatus`, `CategoryType` are enums above the data-layer boundary. Raw int conversion happens only at the SQLite read/write boundary, nowhere else.
+- **Layering:** `presentation/` is widgets and composition only. Any file with no widget in it — calculations, file I/O, business logic — belongs in `data/` or `application/`, never `presentation/`, regardless of how small or "helper"-like it is.
+- **File size as a signal, not a target:** a `presentation/` file crossing ~250 lines is worth examining for an extractable dialog, list-item widget, or state-view — not because of the number itself, but because that's usually where a mixed-concerns problem is hiding. A file that's long but genuinely single-purpose doesn't need splitting just to hit a line count.
+- **Localization:** Western (Latin) numerals always, even under the Arabic locale. Charts and the PIN keypad stay left-to-right regardless of locale. Seed category names use the `seedKey` + ARB-lookup pattern, cleared automatically when the user edits the name, so translations never clobber a user's customization.
+
+### Project-specific conventions
+
+- **Pure functions:** `savingsRate()`, `goalProgress()`, `colorFromHex()` in `lib/core/calculations.dart`.
+- **DB tables:** `categories`, `transactions`, `goals`, `settings` (key-value).
+- **Screen naming:** "Activity" throughout (list screen, add/edit dialogs, delete confirmation, empty state, Semantics labels).
+
+## Best practices
+
+**Dart style (Effective Dart):**
+- Standard naming: `UpperCamelCase` for classes/enums/typedefs, `lowerCamelCase` for variables/functions/parameters, `lowercase_with_underscores` for file and directory names.
+- Prefer `final` for any local that's never reassigned; `const` wherever a value is compile-time constant.
+- Public classes, methods, and non-trivial functions get a `///` doc comment — especially anything encoding a business rule (the spendable-balance formula, goal auto-complete logic, month-boundary math).
+- Avoid the `!` null-assertion operator except where nullability was just ruled out immediately above — prefer proper null-handling (`??`, `?.`, early returns).
+
+**Flutter widget practices:**
+- `const` constructors everywhere the widget's inputs are compile-time constant.
+- Keep `build()` methods pure — no async calls, no state mutation, no side effects inside `build()`.
+- Prefer composition (small widgets assembled together) over deep conditional branching inside one widget's `build()`.
+- `RepaintBoundary` around expensive/animated subtrees (charts, custom painting) if repaint cost ever becomes visible.
+
+**Riverpod conventions:**
+- `ref.watch` belongs in `build()`/provider bodies; `ref.read` belongs in callbacks and event handlers. Watching inside a callback is a common correctness bug.
+- Keep providers narrow — one provider per cohesive piece of state/query, not one large provider bag holding unrelated data.
+- Use `autoDispose` for providers tied to a screen's lifetime (form state, a specific goal's detail data) so they don't linger after navigating away.
+
+**Testing conventions:**
+- Test names describe behavior, not implementation ("shows an error when the PIN is wrong," not "test4").
+- Prefer testing observable behavior over internal implementation details that could change without the behavior changing.
+
+## Tooling & hygiene
+
+- Every new dependency needs a reason; prefer the smallest dependency set that does the job.
+- Resolve to current versions via `flutter pub add` rather than hand-pinning version numbers in `pubspec.yaml`.
+- `dart format .` and `flutter analyze` clean before considering any pass finished.
+
+## Accessibility
+
+- Any new interactive widget needs a `Semantics` label, following the pattern already established for the Activity screen.
+- Respect system text-scaling — layouts shouldn't break at larger accessibility font sizes.
+
+## Error handling
+
+- Any operation that can fail (DB write, file I/O) should surface a real error state to the user, not fail silently. Treat this as the default expectation for anything added.
+
+### Known undecided gap
+
+The original product plan listed "optional local encryption of stored data" as a non-functional requirement. The SQLite file itself isn't encrypted at today — only the PIN is, via `flutter_secure_storage`. Worth a deliberate call (encrypt with something like SQLCipher, or explicitly accept the current trade-off) rather than leaving it as an unexamined default.
+
+## Removed features — do not reintroduce without a dedicated pass
+
+- **Biometric authentication** — removed after repeated crashes. PIN is the only lock method until this gets its own careful, tested reintroduction.
+- **Month Start Day customization** — removed from Settings, hardcoded to calendar month (day 1). The underlying `monthDateRange` function still supports it; it's just not user-facing.
+
+## Reporting discipline
+
+- **A checklist line is not evidence.** Any claim that a refactor, fix, or decomposition landed should come with the concrete number that proves it — a line count, a test count, a before/after diff — not a summary sentence.
+- **When a prompt asks for a specific artifact** — a file-size inventory, a test count, a before/after comparison — report that artifact in full. Don't fold it into a one-line status update instead of actually producing it.
 
 ## Status
 - [x] Phases 1-11: scaffold, data, features, onboarding, reports, settings, app lock
