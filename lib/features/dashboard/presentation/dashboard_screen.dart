@@ -79,7 +79,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (e, _) => Center(child: Text(AppLocalizations.of(context)!.error_generic('$e'))),
           data: (d) => ListView(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
             children: [
               _BalanceCard(spendableBalance: d.spendableBalance, goalBalances: d.goalBalances),
               const SizedBox(height: 12),

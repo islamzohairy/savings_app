@@ -17,6 +17,7 @@ class SavingsApp extends ConsumerWidget {
     final settings = ref.watch(settingsProvider);
     final locale = ref.read(settingsProvider.notifier).resolvedLocale;
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       title: 'Savings',
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
@@ -111,6 +112,7 @@ class _MainApp extends ConsumerWidget {
     final themeMode = settings['themeMode'];
     final locale = ref.read(settingsProvider.notifier).resolvedLocale;
     return MaterialApp.router(
+      debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
       themeMode: _resolveThemeMode(themeMode),

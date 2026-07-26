@@ -21,6 +21,7 @@ class GoalsScreen extends ConsumerWidget {
         data: (list) {
           if (list.isEmpty) return Center(child: Text(AppLocalizations.of(context)!.emptyState_noGoals));
           return ListView.builder(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
             itemCount: list.length,
             itemBuilder: (ctx, i) => _GoalTile(goal: list[i]),
           );

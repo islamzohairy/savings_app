@@ -110,6 +110,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                 ? Center(child: Text(AppLocalizations.of(context)!.emptyState_noActivity))
                 : ListView.builder(
                     controller: _scrollCtrl,
+                    padding: const EdgeInsets.fromLTRB(0, 0, 0, 80),
                     itemCount: filtered.length + (_hasMore ? 1 : 0),
                     itemBuilder: (ctx, i) {
                       if (i == filtered.length) {

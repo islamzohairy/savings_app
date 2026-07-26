@@ -199,11 +199,13 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     ),
   );
 
-  Widget _doneStep() => _stepShell(
-    title: AppLocalizations.of(context)!.onboarding_doneTitle,
+  Widget _doneStep() => Padding(
+    padding: const EdgeInsets.all(24),
     child: Column(
-      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
+        Text(AppLocalizations.of(context)!.onboarding_doneTitle, style: Theme.of(context).textTheme.headlineSmall, textAlign: TextAlign.center),
+        const Spacer(),
         Icon(Icons.check_circle, size: 80, color: Theme.of(context).colorScheme.primary),
         const SizedBox(height: 24),
         Text(AppLocalizations.of(context)!.onboarding_doneBody, style: Theme.of(context).textTheme.bodyLarge, textAlign: TextAlign.center),

@@ -69,9 +69,12 @@ class _AddEditTransactionScreenState extends ConsumerState<AddEditTransactionScr
             ],
             selected: {_type},
             onSelectionChanged: (s) => setState(() {
-              _type = s.first;
-              if (_type != TransactionType.saving) _goalId = null;
-              if (_type == TransactionType.saving) _categoryId = null;
+              final newType = s.first;
+              if (newType != _type) {
+                _categoryId = null;
+                _goalId = null;
+              }
+              _type = newType;
             }),
           ),
           const SizedBox(height: 16),

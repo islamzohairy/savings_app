@@ -19,7 +19,7 @@ class CategoriesScreen extends ConsumerWidget {
         data: (list) {
           if (list.isEmpty) return Center(child: Text(AppLocalizations.of(context)!.emptyState_noCategories));
           return ListView.builder(
-            padding: const EdgeInsets.only(bottom: 80),
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 80),
             itemCount: list.length,
             itemBuilder: (ctx, i) {
               final c = list[i];
