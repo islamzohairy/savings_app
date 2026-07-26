@@ -117,9 +117,9 @@ Categories (`/categories`) is not in the nav — reached via the Activity screen
 
 - Any operation that can fail (DB write, file I/O) should surface a real error state to the user, not fail silently. Treat this as the default expectation for anything added.
 
-### Known undecided gap
+### Accepted trade-off: no encryption at rest
 
-The original product plan listed "optional local encryption of stored data" as a non-functional requirement. The SQLite file itself isn't encrypted at today — only the PIN is, via `flutter_secure_storage`. Worth a deliberate call (encrypt with something like SQLCipher, or explicitly accept the current trade-off) rather than leaving it as an unexamined default.
+The original product plan listed "optional local encryption of stored data" as a non-functional requirement. The SQLite file itself isn't encrypted at rest — only the PIN is, via `flutter_secure_storage`. **Decision: accepted as-is.** This is an offline, single-user, non-cloud app; the PIN already gates app access, which covers the realistic threat model (someone else picks up an unlocked phone). Defending against extraction from a rooted/jailbroken device is a materially higher bar than this app needs to clear. Revisit only if the app's data sensitivity or threat model changes.
 
 ## Removed features — do not reintroduce without a dedicated pass
 
