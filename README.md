@@ -103,9 +103,10 @@ lib/
     │   ├── application/category_provider.dart
     │   └── presentation/categories_screen.dart
     ├── settings/
+    │   ├── data/
+    │   │   └── backup_restore.dart
     │   └── presentation/
-    │       ├── settings_screen.dart
-    │       └── backup_restore.dart
+    │       └── settings_screen.dart
     ├── onboarding/
     │   └── presentation/onboarding_screen.dart
     └── app_lock/
@@ -159,12 +160,14 @@ flutter test
 flutter test --coverage
 ```
 
-**58 tests** across 5 test files:
+**80 tests** across 7 test files:
 - `test/money_test.dart` — 20 tests (toWesternDigits, ArabicDigitFormatter, parseAmountToMinor, formatAmount)
 - `test/database_test.dart` — 20 tests (monthTotal, totalBalance, categoryBreakdown, monthlyTrend, topExpenses, savingsRate, spendable balance, goal overfunding, pagination, category filtering)
 - `test/invalidation_test.dart` — 9 tests (domain-scoped invalidation regression)
 - `test/calculations_test.dart` — 6 tests (savingsRate, goalProgress, colorFromHex)
 - `test/widget_test.dart` — 3 tests (app launch, RTL render)
+- `test/widget_extracted_test.dart` — 16 tests (render tests for all 13 extracted widgets)
+- `test/widget_dialogs_test.dart` — 6 tests (GoalContributeDialog, GoalEditDialog, GoalProgressCard, GoalHistoryList behavioral tests)
 
 ## Code Quality
 
@@ -180,9 +183,9 @@ Clean — only pre-existing info-level warnings (3x `use_build_context_synchrono
 |--------|-------|
 | Dart files in `lib/` | 44 |
 | Lines of code in `lib/` | 5,872 |
-| Test files | 5 |
-| Lines of code in `test/` | 819 |
-| Total tests | 58 |
+| Test files | 7 |
+| Lines of code in `test/` | 1,171 |
+| Total tests | 80 |
 | ARB translation keys | 161 |
 | Supported languages | 2 (English, Arabic) |
 | Seed categories | 14 |

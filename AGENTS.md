@@ -46,7 +46,7 @@ Feature-first, three layers per feature: `data/` (repo), `application/` (provide
 | `lib/features/reports/presentation/trend_chart.dart` | Bar chart (6-cycle savings trend) |
 | `lib/features/reports/presentation/top_expense_tile.dart` | Top expense list item |
 | `lib/features/settings/` | Currency, theme, backup/restore, PIN change |
-| `lib/features/settings/presentation/backup_restore.dart` | Database backup/restore helpers (free functions) |
+| `lib/features/settings/data/backup_restore.dart` | Database backup/restore helpers (free functions) |
 | `lib/features/onboarding/` | 6-step wizard (language, welcome, currency, balance, goal) |
 | `lib/features/app_lock/` | PIN gate |
 
@@ -77,6 +77,7 @@ Categories (`/categories`) is not in the nav — reached via the Activity screen
 - [x] Polish: debug banner removed, FAB padding, goal delete/withdraw confirmations
 - [x] Architecture review: separation of concerns, domain-scoped invalidation, typed enums, ValueKey on list items, mounted guards
 - [x] Screen decomposition: extracted 13 standalone widgets from 5 large screens (reports, dashboard, goal_detail, transactions, settings)
+- [x] Decomposition cleanup: moved backup_restore to data layer, added 22 widget tests (80 total)
 
 ## Known Issues
 1. Spec called for Drift; implementation uses raw sqflite (deviation accepted)

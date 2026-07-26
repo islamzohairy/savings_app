@@ -4,7 +4,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../../core/settings_provider.dart';
 import '../../../core/money.dart';
 import '../../../l10n/app_localizations.dart';
-import 'backup_restore.dart';
+import '../data/backup_restore.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
