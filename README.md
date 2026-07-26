@@ -65,16 +65,51 @@ lib/
 │   ├── app_en.arb               # English translations (161 keys)
 │   └── app_ar.arb               # Arabic translations (161 keys)
 └── features/
-    ├── dashboard/               # Balance card, month summary, goal progress
-    │   └── application/
-    │       └── dashboard_provider.dart  # DashboardData + invalidateDashboard()
-    ├── transactions/            # CRUD, keyset-paginated list, type-filtered picker
-    ├── goals/                   # CRUD, contribute/withdraw, projected completion
-    ├── reports/                 # Month picker, pie chart, bar trend, top expenses
-    ├── categories/              # CRUD, archive, type-filtered seed defaults
-    ├── settings/                # Currency, theme, backup/restore, PIN change
-    ├── onboarding/              # 6-step wizard
-    └── app_lock/                # PIN gate
+    ├── dashboard/
+    │   ├── application/
+    │   │   └── dashboard_provider.dart
+    │   └── presentation/
+    │       ├── dashboard_screen.dart
+    │       ├── balance_card.dart
+    │       ├── month_summary_card.dart
+    │       └── goal_progress_card.dart
+    ├── transactions/
+    │   ├── data/transaction_repository.dart
+    │   ├── application/transaction_provider.dart
+    │   └── presentation/
+    │       ├── transactions_screen.dart
+    │       ├── add_edit_transaction_screen.dart
+    │       ├── transaction_tile.dart
+    │       └── transaction_filter_chips.dart
+    ├── goals/
+    │   ├── data/goal_repository.dart
+    │   ├── application/goal_provider.dart
+    │   └── presentation/
+    │       ├── goals_screen.dart
+    │       ├── goal_detail_screen.dart
+    │       ├── goal_history_list.dart
+    │       ├── goal_contribute_dialog.dart
+    │       └── goal_edit_dialog.dart
+    ├── reports/
+    │   └── presentation/
+    │       ├── reports_screen.dart
+    │       ├── month_picker.dart
+    │       ├── report_summary_card.dart
+    │       ├── category_chart.dart
+    │       ├── trend_chart.dart
+    │       └── top_expense_tile.dart
+    ├── categories/
+    │   ├── data/category_repository.dart
+    │   ├── application/category_provider.dart
+    │   └── presentation/categories_screen.dart
+    ├── settings/
+    │   └── presentation/
+    │       ├── settings_screen.dart
+    │       └── backup_restore.dart
+    ├── onboarding/
+    │   └── presentation/onboarding_screen.dart
+    └── app_lock/
+        └── presentation/app_lock_screen.dart
 ```
 
 Each feature follows:
@@ -102,6 +137,7 @@ Categories (`/categories`) is reached via the Activity screen's category icon.
 - **Pure functions**: `savingsRate()`, `goalProgress()`, `colorFromHex()` in `lib/core/calculations.dart`.
 - **DB tables**: `categories`, `transactions`, `goals`, `settings` (key-value).
 - **Screen naming**: "Activity" throughout (list screen, add/edit dialogs, delete confirmation, empty state, Semantics labels).
+- **Extracted widgets**: Each large screen delegates to standalone single-responsibility widgets (e.g. `TransactionTile`, `BalanceCard`, `GoalContributeDialog`).
 
 ## Seed Categories (14 total)
 
@@ -142,8 +178,8 @@ Clean — only pre-existing info-level warnings (3x `use_build_context_synchrono
 
 | Metric | Value |
 |--------|-------|
-| Dart files in `lib/` | 31 |
-| Lines of code in `lib/` | 5,763 |
+| Dart files in `lib/` | 44 |
+| Lines of code in `lib/` | 5,872 |
 | Test files | 5 |
 | Lines of code in `test/` | 819 |
 | Total tests | 58 |

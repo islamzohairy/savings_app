@@ -27,14 +27,27 @@ Feature-first, three layers per feature: `data/` (repo), `application/` (provide
 | `lib/core/theme.dart` | Material3 light/dark with green seed |
 | `lib/core/settings_provider.dart` | Riverpod Notifier for settings key-value |
 | `lib/core/date_utils.dart` | Billing cycle math (`monthDateRange`, prev/next) |
+| `lib/core/seed_categories.dart` | Category display name lookup (EN + AR) |
 | `lib/features/categories/` | Category CRUD, archive (not delete), type-filtered seed defaults |
 | `lib/features/transactions/` | Transaction CRUD, keyset-paginated list, type-filtered category picker |
+| `lib/features/transactions/presentation/transaction_tile.dart` | Standalone transaction list item widget |
+| `lib/features/transactions/presentation/transaction_filter_chips.dart` | Type filter chips (All/Income/Expense/Saving) |
 | `lib/features/goals/` | Goal CRUD, contribute/withdraw, projected completion, paginated history |
+| `lib/features/goals/presentation/goal_contribute_dialog.dart` | Contribute/withdraw dialog (static `showContribute`/`showWithdraw`) |
+| `lib/features/goals/presentation/goal_edit_dialog.dart` | Goal edit dialog |
 | `lib/features/dashboard/application/dashboard_provider.dart` | `DashboardData` class + `dashboardDataProvider` + `invalidateDashboard()` |
-| `lib/features/dashboard/` | Balance card, month summary, goal progress |
+| `lib/features/dashboard/presentation/balance_card.dart` | Spendable balance card |
+| `lib/features/dashboard/presentation/month_summary_card.dart` | Monthly income/expenses/net/savings rate |
+| `lib/features/dashboard/presentation/goal_progress_card.dart` | Goal progress card for dashboard |
 | `lib/features/reports/` | Month picker, pie chart, bar trend, keyset-paginated top expenses |
+| `lib/features/reports/presentation/month_picker.dart` | Month picker widget |
+| `lib/features/reports/presentation/report_summary_card.dart` | Report summary totals |
+| `lib/features/reports/presentation/category_chart.dart` | Pie chart (expenses by category) |
+| `lib/features/reports/presentation/trend_chart.dart` | Bar chart (6-cycle savings trend) |
+| `lib/features/reports/presentation/top_expense_tile.dart` | Top expense list item |
 | `lib/features/settings/` | Currency, theme, backup/restore, PIN change |
-| `lib/features/onboarding/` | 5-step wizard (currency, balance, goal) |
+| `lib/features/settings/presentation/backup_restore.dart` | Database backup/restore helpers (free functions) |
+| `lib/features/onboarding/` | 6-step wizard (language, welcome, currency, balance, goal) |
 | `lib/features/app_lock/` | PIN gate |
 
 ## Bottom Nav
@@ -63,6 +76,7 @@ Categories (`/categories`) is not in the nav — reached via the Activity screen
 - [x] Localization: EN + AR, 161 keys, RTL, Arabic numeral input, language picker
 - [x] Polish: debug banner removed, FAB padding, goal delete/withdraw confirmations
 - [x] Architecture review: separation of concerns, domain-scoped invalidation, typed enums, ValueKey on list items, mounted guards
+- [x] Screen decomposition: extracted 13 standalone widgets from 5 large screens (reports, dashboard, goal_detail, transactions, settings)
 
 ## Known Issues
 1. Spec called for Drift; implementation uses raw sqflite (deviation accepted)
