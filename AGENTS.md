@@ -63,9 +63,8 @@ Categories (`/categories`) is not in the nav — reached via the Activity screen
 - [x] Phases 1-11: scaffold, data, features, onboarding, reports, settings, app lock
 - [x] Simplification pass: keyset pagination, responsive UI, month start removed, biometrics removed
 - [x] Naming/seed pass: Activity rename, type-filtered category picker, 14-category seed
-- [ ] Phase 12: polish (empty states, error states, accessibility)
-- [ ] Phase 13: tests (money + SQL aggregation unit tests, widget tests)
+- [x] Localization: EN + AR, 161 keys, RTL, Arabic numeral input, language picker in onboarding + settings
+- [x] Polish: debug banner removed, FAB bottom padding, consistent layout, goal delete/withdraw confirmations, dropdown type-switch fix
 
 ## Known Issues
-1. Stray `features/dashboard/{presentation}/` directory exists
-2. Spec called for Drift; implementation uses raw sqflite (deviation accepted)
+1. Spec called for Drift; implementation uses raw sqflite (deviation accepted)
