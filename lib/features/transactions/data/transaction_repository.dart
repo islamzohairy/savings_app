@@ -44,11 +44,11 @@ class TransactionRepository {
     return db.query('transactions', where: where, whereArgs: args, orderBy: 'date DESC');
   }
 
-  Future<int> monthTotal(int type, DateTime start, DateTime end) async {
+  Future<int> monthTotal(TransactionType type, DateTime start, DateTime end) async {
     final db = await _db.database;
     final result = await db.rawQuery(
       'SELECT COALESCE(SUM(amountMinor), 0) as total FROM transactions WHERE type = ? AND date >= ? AND date <= ?',
-      [type, start.toIso8601String(), end.toIso8601String()],
+      [type.index, start.toIso8601String(), end.toIso8601String()],
     );
     return Sqflite.firstIntValue(result) ?? 0;
   }
@@ -146,11 +146,11 @@ class TransactionRepository {
     return Sqflite.firstIntValue(result) ?? 0;
   }
 
-  Future<int> totalByType(int type) async {
+  Future<int> totalByType(TransactionType type) async {
     final db = await _db.database;
     final result = await db.rawQuery(
       'SELECT COALESCE(SUM(amountMinor), 0) as total FROM transactions WHERE type = ?',
-      [type],
+      [type.index],
     );
     return Sqflite.firstIntValue(result) ?? 0;
   }

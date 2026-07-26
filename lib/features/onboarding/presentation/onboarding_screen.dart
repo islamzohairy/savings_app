@@ -252,7 +252,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       final now = DateTime.now().toIso8601String();
       final txnRepo = ref.read(transactionRepoProvider);
       await txnRepo.insert({
-        'type': 0, // income
+        'type': TransactionType.income.index,
         'amountMinor': balanceMinor,
         'date': now,
         'note': AppLocalizations.of(context)!.note_startingBalance,
@@ -270,14 +270,14 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         'targetAmountMinor': goalMinor > 0 ? goalMinor : null,
         'iconKey': 'flag',
         'colorHex': '3F51B5',
-        'status': 0, // active
+        'status': GoalStatus.active.index,
         'sortOrder': 0,
         'createdAt': now,
       });
       if (goalMinor > 0) {
         final txnRepo = ref.read(transactionRepoProvider);
         await txnRepo.insert({
-          'type': 2, // saving
+          'type': TransactionType.saving.index,
           'amountMinor': goalMinor,
           'goalId': goalId,
           'date': now,

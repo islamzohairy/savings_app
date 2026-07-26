@@ -1,16 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
-import 'package:intl/intl.dart';
 import '../../../core/db/database.dart';
-import '../../../core/money.dart';
-import '../../../core/seed_categories.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../categories/application/category_provider.dart';
-import '../../dashboard/presentation/dashboard_screen.dart';
+import '../../dashboard/application/dashboard_provider.dart';
 import '../application/transaction_provider.dart';
 import 'add_edit_transaction_screen.dart';
+import 'transaction_tile.dart';
+import 'transaction_filter_chips.dart';
 
 class TransactionsScreen extends ConsumerStatefulWidget {
   const TransactionsScreen({super.key});
@@ -20,7 +18,7 @@ class TransactionsScreen extends ConsumerStatefulWidget {
 }
 
 class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
-  int? _filterType;
+  TransactionType? _filterType;
   int? _filterCategoryId;
   final List<Map<String, dynamic>> _txns = [];
   bool _loading = true;
@@ -80,14 +78,13 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
   }
 
   List<Map<String, dynamic>> get _filtered => _txns.where((t) {
-    if (_filterType != null && t['type'] != _filterType) return false;
+    if (_filterType != null && t['type'] != _filterType!.index) return false;
     if (_filterCategoryId != null && t['categoryId'] != _filterCategoryId) return false;
     return true;
   }).toList();
 
   @override
   Widget build(BuildContext context) {
-    final cats = ref.watch(categoriesProvider);
     final filtered = _filtered;
     return Scaffold(
       appBar: AppBar(
@@ -104,7 +101,10 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
       ),
       body: Column(
         children: [
-          _buildFilters(cats),
+          TransactionFilterChips(
+            selectedType: _filterType,
+            onTypeChanged: (t) => setState(() => _filterType = t),
+          ),
           Expanded(
             child: _txns.isEmpty && !_loading
                 ? Center(child: Text(AppLocalizations.of(context)!.emptyState_noActivity))
@@ -119,7 +119,11 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                           child: Center(child: CircularProgressIndicator()),
                         );
                       }
-                      return _tile(ctx, filtered[i]);
+                      return TransactionTile(
+                        transaction: filtered[i],
+                        onTap: () => _edit(context, filtered[i]),
+                        onLongPress: () => _confirmDelete(context, filtered[i]),
+                      );
                     },
                   ),
           ),
@@ -135,73 +139,10 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     );
   }
 
-  Widget _buildFilters(AsyncValue<List<Map<String, dynamic>>> cats) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      child: Wrap(
-        alignment: WrapAlignment.center,
-        spacing: 8,
-        runSpacing: 8,
-        children: [
-          FilterChip(
-            label: Text(AppLocalizations.of(context)!.filter_all),
-            selected: _filterType == null,
-            onSelected: (_) => setState(() => _filterType = null),
-          ),
-          FilterChip(
-            label: Text(AppLocalizations.of(context)!.filter_income),
-            selected: _filterType == 0,
-            onSelected: (_) => setState(() => _filterType = _filterType == 0 ? null : 0),
-          ),
-          FilterChip(
-            label: Text(AppLocalizations.of(context)!.filter_expense),
-            selected: _filterType == 1,
-            onSelected: (_) => setState(() => _filterType = _filterType == 1 ? null : 1),
-          ),
-          FilterChip(
-            label: Text(AppLocalizations.of(context)!.filter_saving),
-            selected: _filterType == 2,
-            onSelected: (_) => setState(() => _filterType = _filterType == 2 ? null : 2),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _tile(BuildContext context, Map<String, dynamic> t) {
-    final type = TransactionType.values[t['type'] as int];
-    final cs = Theme.of(context).colorScheme;
-    final color = type == TransactionType.income ? cs.primary
-        : type == TransactionType.expense ? cs.error
-        : cs.tertiary;
-    final date = DateTime.parse(t['date'] as String);
-    final goalName = t['goalName'] as String?;
-    final subtitle = type == TransactionType.saving
-        ? (goalName != null ? AppLocalizations.of(context)!.txnSubtitle_savingToGoal(goalName) : AppLocalizations.of(context)!.txnSubtitle_saving)
-        : (t['categoryName'] != null ? displayCategoryName(t['categoryName'] as String, Localizations.localeOf(context).languageCode) : t['note'] as String? ?? (type == TransactionType.income ? AppLocalizations.of(context)!.type_income : AppLocalizations.of(context)!.type_expense));
-    return ListTile(
-      leading: CircleAvatar(
-        backgroundColor: color.withAlpha(30),
-        child: Icon(
-          type == TransactionType.income ? Icons.arrow_downward
-              : type == TransactionType.saving ? Icons.savings
-              : Icons.arrow_upward,
-          color: color,
-          size: 20,
-        ),
-      ),
-      title: Text(formatAmount(t['amountMinor'] as int)),
-      subtitle: Text(subtitle),
-      trailing: Text(DateFormat.MMMd().format(date), style: Theme.of(context).textTheme.bodySmall),
-      onTap: () => _edit(context, t),
-      onLongPress: () => _confirmDelete(context, t),
-    );
-  }
-
   void _add(BuildContext context) async {
     await Navigator.push(context, MaterialPageRoute(builder: (_) => const AddEditTransactionScreen()));
-    refreshTransactions(ref);
-    refreshCategories(ref);
+    invalidateTransactions(ref);
+    invalidateCategories(ref);
     _loadInitial();
   }
 
@@ -220,8 +161,8 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
           FilledButton(
             onPressed: () async {
               await ref.read(transactionRepoProvider).delete(t['id'] as int);
-              refreshTransactions(ref);
-              refreshDashboard(ref);
+              invalidateTransactions(ref);
+              invalidateDashboard(ref);
               if (ctx.mounted) Navigator.pop(ctx);
               _loadInitial();
             },

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/db/database.dart';
 import '../../../core/seed_categories.dart';
+import '../../../core/calculations.dart';
 import '../../../l10n/app_localizations.dart';
 import '../application/category_provider.dart';
 
@@ -24,9 +25,10 @@ class CategoriesScreen extends ConsumerWidget {
             itemBuilder: (ctx, i) {
               final c = list[i];
               final type = TransactionType.values[c['type'] as int];
-              final color = Color(int.parse('FF${c['colorHex']}', radix: 16));
+              final color = colorFromHex(c['colorHex'] as String);
               final archived = (c['isArchived'] as int) == 1;
               return ListTile(
+                key: ValueKey(c['id']),
                 leading: CircleAvatar(backgroundColor: color, child: Icon(_iconFor(c['iconKey'] as String), color: Theme.of(context).colorScheme.onPrimary, size: 20)),
                 title: Text(displayCategoryName(c['name'] as String, Localizations.localeOf(context).languageCode), style: archived ? const TextStyle(decoration: TextDecoration.lineThrough) : null),
                 subtitle: Text(type == TransactionType.income ? AppLocalizations.of(context)!.categoryType_income : AppLocalizations.of(context)!.categoryType_expense),
@@ -81,11 +83,11 @@ class CategoriesScreen extends ConsumerWidget {
           );
           if (confirmed == true) {
             await repo.delete(cat['id'] as int);
-            refreshCategories(ref);
+            invalidateCategories(ref);
           }
         }
     }
-    refreshCategories(ref);
+    invalidateCategories(ref);
   }
 
   void _showAddDialog(BuildContext context, WidgetRef ref) {
@@ -121,7 +123,7 @@ class CategoriesScreen extends ConsumerWidget {
               'sortOrder': 99,
               'createdAt': DateTime.now().toIso8601String(),
             });
-            refreshCategories(ref);
+            invalidateCategories(ref);
             if (ctx.mounted) Navigator.pop(ctx);
           }, child: Text(AppLocalizations.of(context)!.btn_add)),
         ],
@@ -143,7 +145,7 @@ class CategoriesScreen extends ConsumerWidget {
             await ref.read(categoryRepoProvider).update(cat['id'] as int, {
               'name': nameCtrl.text.trim(),
             });
-            refreshCategories(ref);
+            invalidateCategories(ref);
             if (ctx.mounted) Navigator.pop(ctx);
           }, child: Text(AppLocalizations.of(context)!.btn_save)),
         ],

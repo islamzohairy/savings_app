@@ -55,6 +55,7 @@ lib/
 │   └── router.dart              # go_router + bottom nav shell (5 tabs)
 ├── core/
 │   ├── db/database.dart         # SQLite schema v2, migrations, settings, seed defaults
+│   ├── calculations.dart        # Pure functions: savingsRate, goalProgress, colorFromHex
 │   ├── money.dart               # formatAmount, parseAmountToMinor, ArabicDigitFormatter
 │   ├── theme.dart               # Material3 light/dark with green seed
 │   ├── seed_categories.dart     # Category display name lookup (EN + AR)
@@ -65,6 +66,8 @@ lib/
 │   └── app_ar.arb               # Arabic translations (161 keys)
 └── features/
     ├── dashboard/               # Balance card, month summary, goal progress
+    │   └── application/
+    │       └── dashboard_provider.dart  # DashboardData + invalidateDashboard()
     ├── transactions/            # CRUD, keyset-paginated list, type-filtered picker
     ├── goals/                   # CRUD, contribute/withdraw, projected completion
     ├── reports/                 # Month picker, pie chart, bar trend, top expenses
@@ -94,11 +97,10 @@ Categories (`/categories`) is reached via the Activity screen's category icon.
 ## Conventions
 
 - **Money**: All amounts stored as `int` in minor units (cents). Never `double` for stored/summed amounts.
-- **Refresh pattern**: `_RefreshNotifier` counter pattern (not reactive streams).
+- **Refresh**: domain-scoped `invalidate*()` using `ref.invalidate()`.
+- **Enums**: `TransactionType` (income/expense/saving), `GoalStatus` (active/paused/completed/archived).
+- **Pure functions**: `savingsRate()`, `goalProgress()`, `colorFromHex()` in `lib/core/calculations.dart`.
 - **DB tables**: `categories`, `transactions`, `goals`, `settings` (key-value).
-- **Transaction types**: 0=income, 1=expense, 2=saving.
-- **Goal statuses**: 0=active, 1=paused, 2=completed, 3=archived.
-- **Category types**: 0=income, 1=expense. Picker filters by transaction type.
 - **Screen naming**: "Activity" throughout (list screen, add/edit dialogs, delete confirmation, empty state, Semantics labels).
 
 ## Seed Categories (14 total)
@@ -109,35 +111,23 @@ Categories (`/categories`) is reached via the Activity screen's category icon.
 
 ## Getting Started
 
-### Prerequisites
-- Flutter 3.41+
-- Dart 3.11+
-
-### Install & Run
 ```bash
 flutter pub get
 flutter run
 ```
 
-### Build
-```bash
-flutter build apk --debug
-flutter build apk --release
-```
-
 ## Testing
 
 ```bash
-# Run all tests
 flutter test
-
-# Run with coverage
 flutter test --coverage
 ```
 
-**43 tests** across 3 test files:
+**58 tests** across 5 test files:
 - `test/money_test.dart` — 20 tests (toWesternDigits, ArabicDigitFormatter, parseAmountToMinor, formatAmount)
 - `test/database_test.dart` — 20 tests (monthTotal, totalBalance, categoryBreakdown, monthlyTrend, topExpenses, savingsRate, spendable balance, goal overfunding, pagination, category filtering)
+- `test/invalidation_test.dart` — 9 tests (domain-scoped invalidation regression)
+- `test/calculations_test.dart` — 6 tests (savingsRate, goalProgress, colorFromHex)
 - `test/widget_test.dart` — 3 tests (app launch, RTL render)
 
 ## Code Quality
@@ -152,11 +142,11 @@ Clean — only pre-existing info-level warnings (3x `use_build_context_synchrono
 
 | Metric | Value |
 |--------|-------|
-| Dart files in `lib/` | 28 |
-| Lines of code in `lib/` | 5,752 |
-| Test files | 3 |
-| Lines of code in `test/` | 576 |
-| Total tests | 43 |
+| Dart files in `lib/` | 31 |
+| Lines of code in `lib/` | 5,763 |
+| Test files | 5 |
+| Lines of code in `test/` | 819 |
+| Total tests | 58 |
 | ARB translation keys | 161 |
 | Supported languages | 2 (English, Arabic) |
 | Seed categories | 14 |

@@ -8,7 +8,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../categories/application/category_provider.dart';
 import '../../goals/application/goal_provider.dart';
 import '../application/transaction_provider.dart';
-import '../../dashboard/presentation/dashboard_screen.dart';
+import '../../dashboard/application/dashboard_provider.dart';
 
 class AddEditTransactionScreen extends ConsumerStatefulWidget {
   const AddEditTransactionScreen({super.key, this.transaction});
@@ -90,7 +90,7 @@ class _AddEditTransactionScreenState extends ConsumerState<AddEditTransactionScr
               loading: () => const LinearProgressIndicator(),
               error: (e, _) => Text(AppLocalizations.of(context)!.error_generic('$e')),
               data: (goals) {
-                final active = goals.where((g) => (g['status'] as int) == 0).toList();
+                final active = goals.where((g) => (g['status'] as int) == GoalStatus.active.index).toList();
                 return DropdownButtonFormField<int>(
                   initialValue: _goalId,
                   isExpanded: true,
@@ -111,8 +111,8 @@ class _AddEditTransactionScreenState extends ConsumerState<AddEditTransactionScr
                 final active = cats.where((c) {
                   if ((c['isArchived'] as int) == 1) return false;
                   if (_type == TransactionType.saving) return false;
-                  final catType = c['type'] as int;
-                  return catType == _type.index;
+                                    final catType = TransactionType.values[c['type'] as int];
+                  return catType == _type;
                 }).toList();
                 final sourceLabel = _type == TransactionType.income ? AppLocalizations.of(context)!.fieldLabel_source : AppLocalizations.of(context)!.fieldLabel_category;
                 return DropdownButtonFormField<int>(
@@ -180,9 +180,9 @@ class _AddEditTransactionScreenState extends ConsumerState<AddEditTransactionScr
       await repo.insert(row);
     }
 
-    refreshTransactions(ref);
-    refreshDashboard(ref);
-    refreshGoals(ref);
+    invalidateTransactions(ref);
+    invalidateDashboard(ref);
+    invalidateGoals(ref);
 
     if (mounted) Navigator.pop(context);
   }

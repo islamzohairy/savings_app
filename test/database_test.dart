@@ -74,19 +74,19 @@ void main() {
       await insertTxn(type: 0, amountMinor: 50000, date: DateTime(2025, 6, 15));
       await insertTxn(type: 0, amountMinor: 30000, date: DateTime(2025, 6, 20));
       await insertTxn(type: 0, amountMinor: 20000, date: DateTime(2025, 5, 15));
-      expect(await repo.monthTotal(0, s, e), 80000);
+      expect(await repo.monthTotal(TransactionType.income, s, e), 80000);
     });
 
     test('sums expenses for the month', () async {
       final (s, e) = monthDateRange(DateTime(2025, 6, 15), 1);
       await insertTxn(type: 1, amountMinor: 10000, date: DateTime(2025, 6, 10));
       await insertTxn(type: 1, amountMinor: 5000, date: DateTime(2025, 6, 25));
-      expect(await repo.monthTotal(1, s, e), 15000);
+      expect(await repo.monthTotal(TransactionType.expense, s, e), 15000);
     });
 
     test('returns 0 for empty month', () async {
       final (s, e) = monthDateRange(DateTime(2025, 3, 15), 1);
-      expect(await repo.monthTotal(0, s, e), 0);
+      expect(await repo.monthTotal(TransactionType.income, s, e), 0);
     });
   });
 
@@ -164,8 +164,8 @@ void main() {
       await insertTxn(type: 0, amountMinor: 100000, date: DateTime(2025, 6, 1));
       await insertTxn(type: 1, amountMinor: 60000, date: DateTime(2025, 6, 5));
 
-      final income = await repo.monthTotal(0, s, e);
-      final expenses = await repo.monthTotal(1, s, e);
+      final income = await repo.monthTotal(TransactionType.income, s, e);
+      final expenses = await repo.monthTotal(TransactionType.expense, s, e);
       final rate = income > 0 ? (income - expenses) / income * 100 : 0.0;
       expect(rate, 40.0);
     });
@@ -194,7 +194,7 @@ void main() {
       await insertTxn(type: 1, amountMinor: 3000, categoryId: cat, date: DateTime(2025, 6, 28));
 
       // Current cycle: only the $30
-      final currentTotal = await repo.monthTotal(1, cycleStart, cycleEnd);
+      final currentTotal = await repo.monthTotal(TransactionType.expense, cycleStart, cycleEnd);
       final currentBreakdown = await repo.categoryBreakdown(cycleStart, cycleEnd);
       final currentTop = await repo.topExpenses(cycleStart, cycleEnd);
 
@@ -205,7 +205,7 @@ void main() {
       expect(currentTop.first['amountMinor'], 3000, reason: 'topExpenses amount should match');
 
       // Previous cycle: only the $50
-      final prevTotal = await repo.monthTotal(1, prevStart, prevEnd);
+      final prevTotal = await repo.monthTotal(TransactionType.expense, prevStart, prevEnd);
       expect(prevTotal, 5000, reason: 'previous cycle should only count its own transaction');
     });
   });
@@ -232,7 +232,7 @@ void main() {
       await insertTxn(type: 1, amountMinor: 10000, date: DateTime(2025, 6, 5)); // expense
       await insertTxn(type: 2, amountMinor: 5000, goalId: 1, date: DateTime(2025, 6, 10)); // saving
 
-      final expenses = await repo.monthTotal(1, s, e);
+      final expenses = await repo.monthTotal(TransactionType.expense, s, e);
       expect(expenses, 10000, reason: 'saving transactions should not appear in expense totals');
     });
   });

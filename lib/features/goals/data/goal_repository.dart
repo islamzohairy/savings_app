@@ -2,7 +2,8 @@ import 'package:sqflite/sqflite.dart';
 import '../../../core/db/database.dart';
 
 class GoalRepository {
-  final AppDatabase _db = AppDatabase.instance;
+  GoalRepository([AppDatabase? db]) : _db = db ?? AppDatabase.instance;
+  final AppDatabase _db;
 
   Future<int> insert(Map<String, dynamic> row) async {
     final db = await _db.database;
@@ -58,7 +59,8 @@ class GoalRepository {
     final totalSaved = (result.first['totalSaved'] as int);
     if (totalSaved <= 0) return null;
 
-    final firstDate = DateTime.parse(result.first['firstDate'] as String);
+    final firstDate = DateTime.tryParse(result.first['firstDate'] as String? ?? '');
+    if (firstDate == null) return null;
     final now = DateTime.now();
     final daysElapsed = now.difference(firstDate).inDays;
     if (daysElapsed <= 0) return null;

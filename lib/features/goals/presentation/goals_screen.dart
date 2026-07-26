@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/db/database.dart';
 import '../../../core/money.dart';
+import '../../../core/calculations.dart';
 import '../../../l10n/app_localizations.dart';
 import '../application/goal_provider.dart';
-import '../../dashboard/presentation/dashboard_screen.dart';
+import '../../dashboard/application/dashboard_provider.dart';
 import 'goal_detail_screen.dart';
 
 class GoalsScreen extends ConsumerWidget {
@@ -23,7 +24,7 @@ class GoalsScreen extends ConsumerWidget {
           return ListView.builder(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
             itemCount: list.length,
-            itemBuilder: (ctx, i) => _GoalTile(goal: list[i]),
+            itemBuilder: (ctx, i) => _GoalTile(goal: list[i], key: ValueKey(list[i]['id'])),
           );
         },
       ),
@@ -70,8 +71,8 @@ class GoalsScreen extends ConsumerWidget {
               'sortOrder': 99,
               'createdAt': now,
             });
-            refreshGoals(ref);
-            refreshDashboard(ref);
+            invalidateGoals(ref);
+            invalidateDashboard(ref);
             if (ctx.mounted) Navigator.pop(ctx);
           }, child: Text(AppLocalizations.of(context)!.btn_create)),
         ],
@@ -81,7 +82,7 @@ class GoalsScreen extends ConsumerWidget {
 }
 
 class _GoalTile extends ConsumerWidget {
-  const _GoalTile({required this.goal});
+  const _GoalTile({required this.goal, super.key});
   final Map<String, dynamic> goal;
 
   String _statusLabel(GoalStatus status, AppLocalizations loc) {
@@ -96,13 +97,13 @@ class _GoalTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final status = GoalStatus.values[goal['status'] as int];
-    final color = Color(int.parse('FF${goal['colorHex']}', radix: 16));
+    final color = colorFromHex(goal['colorHex'] as String);
     return FutureBuilder<int>(
       future: ref.read(goalRepoProvider).currentAmount(goal['id'] as int),
       builder: (ctx, snap) {
         final current = snap.data ?? 0;
         final target = goal['targetAmountMinor'] as int?;
-        final progress = target != null && target > 0 ? (current / target).clamp(0.0, 1.0) : 0.0;
+        final progress = goalProgress(current, target);
         return ListTile(
           leading: CircleAvatar(backgroundColor: color, child: Icon(Icons.flag, color: Theme.of(context).colorScheme.onPrimary, size: 20)),
           title: Text(goal['name'] as String),
@@ -123,7 +124,7 @@ class _GoalTile extends ConsumerWidget {
               : Text(_statusLabel(status, AppLocalizations.of(context)!)),
           onTap: () => Navigator.push(context, MaterialPageRoute(
             builder: (_) => GoalDetailScreen(goalId: goal['id'] as int),
-          )).then((_) => refreshGoals(ref)),
+          )).then((_) => invalidateGoals(ref)),
         );
       },
     );
