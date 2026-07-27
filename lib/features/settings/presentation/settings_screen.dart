@@ -46,7 +46,17 @@ class SettingsScreen extends ConsumerWidget {
             title: Text(AppLocalizations.of(context)!.setting_appLock),
             subtitle: Text(AppLocalizations.of(context)!.setting_appLockSubtitle),
             value: appLockEnabled,
-            onChanged: (v) => ref.read(settingsProvider.notifier).set('appLockEnabled', '$v'),
+            onChanged: (v) async {
+              try {
+                await ref.read(settingsProvider.notifier).set('appLockEnabled', '$v');
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(AppLocalizations.of(context)!.error_generic('$e'))),
+                  );
+                }
+              }
+            },
           ),
           if (appLockEnabled)
             ListTile(
@@ -123,7 +133,15 @@ class SettingsScreen extends ConsumerWidget {
       ),
     );
     if (picked != null) {
-      await ref.read(settingsProvider.notifier).set('languageCode', picked);
+      try {
+        await ref.read(settingsProvider.notifier).set('languageCode', picked);
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(AppLocalizations.of(context)!.error_generic('$e'))),
+          );
+        }
+      }
     }
   }
 
@@ -140,7 +158,15 @@ class SettingsScreen extends ConsumerWidget {
       ),
     );
     if (picked != null) {
-      await ref.read(settingsProvider.notifier).set('currencyCode', picked);
+      try {
+        await ref.read(settingsProvider.notifier).set('currencyCode', picked);
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(AppLocalizations.of(context)!.error_generic('$e'))),
+          );
+        }
+      }
     }
   }
 
@@ -157,13 +183,31 @@ class SettingsScreen extends ConsumerWidget {
       ),
     );
     if (picked != null) {
-      await ref.read(settingsProvider.notifier).set('themeMode', picked);
+      try {
+        await ref.read(settingsProvider.notifier).set('themeMode', picked);
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(AppLocalizations.of(context)!.error_generic('$e'))),
+          );
+        }
+      }
     }
   }
 
   Future<void> _changePin(BuildContext context) async {
     final storage = const FlutterSecureStorage();
-    final storedPin = await storage.read(key: 'app_lock_pin');
+    String? storedPin;
+    try {
+      storedPin = await storage.read(key: 'app_lock_pin');
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppLocalizations.of(context)!.error_generic('$e'))),
+        );
+      }
+      return;
+    }
     if (storedPin == null || storedPin.isEmpty) return;
 
     if (!context.mounted) return;
@@ -235,8 +279,16 @@ class SettingsScreen extends ConsumerWidget {
       ),
     );
     if (result == true) {
-      await storage.write(key: 'app_lock_pin', value: pinCtrl.text);
-      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.snackbar_pinUpdated)));
+      try {
+        await storage.write(key: 'app_lock_pin', value: pinCtrl.text);
+        if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.snackbar_pinUpdated)));
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(AppLocalizations.of(context)!.error_generic('$e'))),
+          );
+        }
+      }
     }
   }
 }

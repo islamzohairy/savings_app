@@ -25,9 +25,13 @@ class BalanceCard extends StatelessWidget {
             ),
             if (goalBalances > 0) ...[
               const SizedBox(height: 4),
-              Text(AppLocalizations.of(context)!.label_inGoals(formatAmount(goalBalances)), style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(context).colorScheme.outline,
-              )),
+              FittedBox(
+                alignment: AlignmentDirectional.centerStart,
+                fit: BoxFit.scaleDown,
+                child: Text(AppLocalizations.of(context)!.label_inGoals(formatCompactAmount(goalBalances)), style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.outline,
+                )),
+              ),
             ],
           ],
         ),

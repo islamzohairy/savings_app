@@ -74,19 +74,27 @@ class GoalsScreen extends ConsumerWidget {
               minor = validation.minorUnits;
             }
             final now = DateTime.now().toIso8601String();
-            await ref.read(goalRepoProvider).insert({
-              'name': nameCtrl.text.trim(),
-              'targetAmountMinor': minor,
-              'targetDate': null,
-              'iconKey': 'flag',
-              'colorHex': '3F51B5',
-              'status': GoalStatus.active.index,
-              'sortOrder': 99,
-              'createdAt': now,
-            });
-            invalidateGoals(ref);
-            invalidateDashboard(ref);
-            if (ctx.mounted) Navigator.pop(ctx);
+            try {
+              await ref.read(goalRepoProvider).insert({
+                'name': nameCtrl.text.trim(),
+                'targetAmountMinor': minor,
+                'targetDate': null,
+                'iconKey': 'flag',
+                'colorHex': '3F51B5',
+                'status': GoalStatus.active.index,
+                'sortOrder': 99,
+                'createdAt': now,
+              });
+              invalidateGoals(ref);
+              invalidateDashboard(ref);
+              if (ctx.mounted) Navigator.pop(ctx);
+            } catch (e) {
+              if (ctx.mounted) {
+                ScaffoldMessenger.of(ctx).showSnackBar(
+                  SnackBar(content: Text(AppLocalizations.of(context)!.error_generic('$e'))),
+                );
+              }
+            }
           }, child: Text(AppLocalizations.of(context)!.btn_create)),
         ],
       ),
@@ -114,6 +122,17 @@ class _GoalTile extends ConsumerWidget {
     return FutureBuilder<int>(
       future: ref.read(goalRepoProvider).currentAmount(goal['id'] as int),
       builder: (ctx, snap) {
+          if (snap.hasError) {
+            return ListTile(
+              leading: CircleAvatar(backgroundColor: color, child: Icon(Icons.flag, color: Theme.of(context).colorScheme.onPrimary, size: 20)),
+              title: Text(goal['name'] as String),
+              subtitle: Text(AppLocalizations.of(context)!.error_generic('${snap.error}')),
+              trailing: IconButton(
+                icon: const Icon(Icons.refresh),
+                onPressed: () => invalidateGoals(ref),
+              ),
+            );
+          }
         final current = snap.data ?? 0;
         final target = goal['targetAmountMinor'] as int?;
         final progress = goalProgress(current, target);
@@ -121,8 +140,8 @@ class _GoalTile extends ConsumerWidget {
           leading: CircleAvatar(backgroundColor: color, child: Icon(Icons.flag, color: Theme.of(context).colorScheme.onPrimary, size: 20)),
           title: Text(goal['name'] as String),
           subtitle: target != null
-              ? Text(AppLocalizations.of(context)!.label_amountOfTarget(formatAmount(current), formatAmount(target)))
-              : Text(formatAmount(current)),
+              ? Text(AppLocalizations.of(context)!.label_amountOfTarget(formatAmount(current), formatAmount(target)), maxLines: 1, overflow: TextOverflow.ellipsis)
+              : Text(formatAmount(current), maxLines: 1, overflow: TextOverflow.ellipsis),
           trailing: status == GoalStatus.active
               ? SizedBox(
                   width: 60,

@@ -52,5 +52,36 @@ void main() {
     test('returns 0 when current is 0', () {
       expect(goalProgress(0, 1000), 0.0);
     });
+
+    test('returns 1.0 when current equals target', () {
+      expect(goalProgress(1000, 1000), 1.0);
+    });
+  });
+
+  group('colorFromHex', () {
+    test('parses valid 6-digit hex', () {
+      final color = colorFromHex('FF9800');
+      expect(color.r, closeTo(1.0, 0.01));
+      expect(color.g, closeTo(0.596, 0.01));
+      expect(color.b, 0.0);
+    });
+
+    test('parses white', () {
+      final color = colorFromHex('FFFFFF');
+      expect(color.r, closeTo(1.0, 0.01));
+      expect(color.g, closeTo(1.0, 0.01));
+      expect(color.b, closeTo(1.0, 0.01));
+    });
+
+    test('parses black', () {
+      final color = colorFromHex('000000');
+      expect(color.r, 0.0);
+      expect(color.g, 0.0);
+      expect(color.b, 0.0);
+    });
+
+    test('throws on invalid hex', () {
+      expect(() => colorFromHex('ZZZZZZ'), throwsA(anything));
+    });
   });
 }

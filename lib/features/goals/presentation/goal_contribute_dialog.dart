@@ -27,6 +27,7 @@ class GoalContributeDialog extends ConsumerStatefulWidget {
 
 class _GoalContributeDialogState extends ConsumerState<GoalContributeDialog> {
   final _ctrl = TextEditingController();
+  bool _saving = false;
 
   @override
   void dispose() {
@@ -46,8 +47,8 @@ class _GoalContributeDialogState extends ConsumerState<GoalContributeDialog> {
         decoration: InputDecoration(labelText: AppLocalizations.of(context)!.fieldLabel_amount, prefixText: currencyPrefix()),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: Text(AppLocalizations.of(context)!.btn_cancel)),
-        FilledButton(onPressed: () async {
+        TextButton(onPressed: _saving ? null : () => Navigator.pop(context), child: Text(AppLocalizations.of(context)!.btn_cancel)),
+        FilledButton(onPressed: _saving ? null : () async {
           final validation = validateAmount(_ctrl.text);
           if (!validation.isValid) {
             if (context.mounted) {
@@ -66,18 +67,30 @@ class _GoalContributeDialogState extends ConsumerState<GoalContributeDialog> {
             }
             return;
           }
-          final repo = ref.read(goalRepoProvider);
-          if (isWithdraw) {
-            await repo.withdraw(widget.goalId, minor);
-          } else {
-            await repo.contribute(widget.goalId, minor);
+          setState(() => _saving = true);
+          try {
+            final repo = ref.read(goalRepoProvider);
+            if (isWithdraw) {
+              await repo.withdraw(widget.goalId, minor);
+            } else {
+              await repo.contribute(widget.goalId, minor);
+            }
+            invalidateGoals(ref);
+            invalidateDashboard(ref);
+            invalidateTransactions(ref);
+            widget.onComplete();
+            if (context.mounted) Navigator.pop(context);
+          } catch (e) {
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(AppLocalizations.of(context)!.error_generic('$e'))),
+              );
+            }
+            if (mounted) setState(() => _saving = false);
           }
-          invalidateGoals(ref);
-          invalidateDashboard(ref);
-          invalidateTransactions(ref);
-          widget.onComplete();
-          if (context.mounted) Navigator.pop(context);
-        }, child: Text(isWithdraw ? AppLocalizations.of(context)!.btn_withdraw : AppLocalizations.of(context)!.btn_add)),
+        }, child: _saving
+            ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+            : Text(isWithdraw ? AppLocalizations.of(context)!.btn_withdraw : AppLocalizations.of(context)!.btn_add)),
       ],
     );
   }

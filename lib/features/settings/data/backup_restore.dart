@@ -15,7 +15,11 @@ Future<void> backupDatabase(BuildContext context) async {
     if (!context.mounted) return;
     await SharePlus.instance.share(ShareParams(files: [XFile(file.path)], text: AppLocalizations.of(context)!.share_backupLabel));
   } catch (e) {
-    // ignore
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppLocalizations.of(context)!.error_generic('$e'))),
+      );
+    }
   }
 }
 

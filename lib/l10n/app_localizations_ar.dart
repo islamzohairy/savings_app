@@ -237,6 +237,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get btn_loadMore => 'تحميل المزيد';
 
   @override
+  String get btn_retry => 'إعادة المحاولة';
+
+  @override
   String get btn_contribute => 'إضافة مبلغ';
 
   @override

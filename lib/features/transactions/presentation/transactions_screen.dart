@@ -5,6 +5,7 @@ import '../../../core/db/database.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../categories/application/category_provider.dart';
 import '../../dashboard/application/dashboard_provider.dart';
+import '../../goals/application/goal_provider.dart';
 import '../application/transaction_provider.dart';
 import 'add_edit_transaction_screen.dart';
 import 'transaction_tile.dart';
@@ -27,6 +28,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
   String? _cursorDate;
   int? _cursorId;
   final _scrollCtrl = ScrollController();
+  String? _error;
 
   @override
   void initState() {
@@ -42,18 +44,28 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
   }
 
   Future<void> _loadInitial() async {
+    _error = null;
     _cursorDate = null;
     _cursorId = null;
     _txns.clear();
-    final repo = ref.read(transactionRepoProvider);
-    final batch = await repo.getAllPaginated(limit: _batchSize);
-    _txns.addAll(batch);
-    _hasMore = batch.length == _batchSize;
-    if (_hasMore && batch.isNotEmpty) {
-      _cursorDate = batch.last['date'] as String;
-      _cursorId = batch.last['id'] as int;
+    try {
+      final repo = ref.read(transactionRepoProvider);
+      final batch = await repo.getAllPaginated(limit: _batchSize);
+      if (!mounted) return;
+      _txns.addAll(batch);
+      _hasMore = batch.length == _batchSize;
+      if (_hasMore && batch.isNotEmpty) {
+        _cursorDate = batch.last['date'] as String;
+        _cursorId = batch.last['id'] as int;
+      }
+      setState(() => _loading = false);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = '$e';
+      });
     }
-    setState(() => _loading = false);
   }
 
   void _onScroll() {
@@ -64,17 +76,28 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
 
   Future<void> _loadMore() async {
     setState(() => _loading = true);
-    final repo = ref.read(transactionRepoProvider);
-    final batch = await repo.getAllPaginated(limit: _batchSize, cursorDate: _cursorDate, cursorId: _cursorId);
-    setState(() {
-      _txns.addAll(batch);
-      _hasMore = batch.length == _batchSize;
-      if (_hasMore && batch.isNotEmpty) {
-        _cursorDate = batch.last['date'] as String;
-        _cursorId = batch.last['id'] as int;
+    try {
+      final repo = ref.read(transactionRepoProvider);
+      final batch = await repo.getAllPaginated(limit: _batchSize, cursorDate: _cursorDate, cursorId: _cursorId);
+      if (!mounted) return;
+      setState(() {
+        _txns.addAll(batch);
+        _hasMore = batch.length == _batchSize;
+        if (_hasMore && batch.isNotEmpty) {
+          _cursorDate = batch.last['date'] as String;
+          _cursorId = batch.last['id'] as int;
+        }
+        _loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _loading = false);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppLocalizations.of(context)!.error_generic('$e'))),
+        );
       }
-      _loading = false;
-    });
+    }
   }
 
   List<Map<String, dynamic>> get _filtered => _txns.where((t) {
@@ -106,9 +129,28 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
             onTypeChanged: (t) => setState(() => _filterType = t),
           ),
           Expanded(
-            child: _txns.isEmpty && !_loading
-                ? Center(child: Text(AppLocalizations.of(context)!.emptyState_noActivity))
-                : ListView.builder(
+            child: _error != null
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(32),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.error_outline, size: 48),
+                          const SizedBox(height: 12),
+                          Text(AppLocalizations.of(context)!.error_generic(_error!), textAlign: TextAlign.center),
+                          const SizedBox(height: 12),
+                          FilledButton(
+                            onPressed: _loadInitial,
+                            child: Text(AppLocalizations.of(context)!.btn_retry),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                : _txns.isEmpty && !_loading
+                    ? Center(child: Text(AppLocalizations.of(context)!.emptyState_noActivity))
+                    : ListView.builder(
                     controller: _scrollCtrl,
                     padding: const EdgeInsets.fromLTRB(0, 0, 0, 80),
                     itemCount: filtered.length + (_hasMore ? 1 : 0),
@@ -150,9 +192,10 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
   void _edit(BuildContext context, Map<String, dynamic> t) async {
     final fresh = await ref.read(transactionRepoProvider).getById(t['id'] as int);
     if (!mounted) return;
-    await Navigator.push(context, MaterialPageRoute(
+    await Navigator.push(this.context, MaterialPageRoute(
       builder: (_) => AddEditTransactionScreen(transaction: fresh ?? t)));
     invalidateTransactions(ref);
+    invalidateGoals(ref);
     invalidateDashboard(ref);
     _loadInitial();
   }
@@ -165,6 +208,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
           try {
             await ref.read(transactionRepoProvider).delete(t['id'] as int);
             invalidateTransactions(ref);
+            invalidateGoals(ref);
             invalidateDashboard(ref);
             if (ctx.mounted) Navigator.pop(ctx);
             if (mounted) _loadInitial();

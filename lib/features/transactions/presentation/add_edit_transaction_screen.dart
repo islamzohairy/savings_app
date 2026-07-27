@@ -91,8 +91,14 @@ class _AddEditTransactionScreenState extends ConsumerState<AddEditTransactionScr
               error: (e, _) => Text(AppLocalizations.of(context)!.error_generic('$e')),
               data: (goals) {
                 final active = goals.where((g) => (g['status'] as int) == GoalStatus.active.index).toList();
-                if (_isEdit && _goalId != null && !active.any((g) => g['id'] as int == _goalId)) {
-                  _goalId = null;
+                if (_isEdit && _goalId != null) {
+                  final goalExists = goals.any((g) => g['id'] as int == _goalId);
+                  if (!goalExists) {
+                    _goalId = null;
+                  } else if (!active.any((g) => g['id'] as int == _goalId)) {
+                    final original = goals.where((g) => g['id'] as int == _goalId).toList();
+                    if (original.isNotEmpty) active.insert(0, original.first);
+                  }
                 }
                 return DropdownButtonFormField<int>(
                   initialValue: _goalId,
@@ -118,7 +124,8 @@ class _AddEditTransactionScreenState extends ConsumerState<AddEditTransactionScr
                   return catType == _type;
                 }).toList();
                 if (_isEdit && _categoryId != null && !active.any((c) => c['id'] as int == _categoryId)) {
-                  _categoryId = null;
+                  final original = cats.where((c) => c['id'] as int == _categoryId).toList();
+                  if (original.isNotEmpty) active.insert(0, original.first);
                 }
                 final sourceLabel = _type == TransactionType.income ? AppLocalizations.of(context)!.fieldLabel_source : AppLocalizations.of(context)!.fieldLabel_category;
                 return DropdownButtonFormField<int>(
@@ -186,18 +193,27 @@ class _AddEditTransactionScreenState extends ConsumerState<AddEditTransactionScr
       'updatedAt': DateTime.now().toIso8601String(),
     };
 
-    final repo = ref.read(transactionRepoProvider);
-    if (_isEdit) {
-      await repo.update(widget.transaction!['id'] as int, row);
-    } else {
-      row['createdAt'] = DateTime.now().toIso8601String();
-      await repo.insert(row);
+    try {
+      final repo = ref.read(transactionRepoProvider);
+      if (_isEdit) {
+        await repo.update(widget.transaction!['id'] as int, row);
+      } else {
+        row['createdAt'] = DateTime.now().toIso8601String();
+        await repo.insert(row);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isSaving = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppLocalizations.of(context)!.error_generic('$e'))),
+      );
+      return;
     }
 
+    if (!mounted) return;
     invalidateTransactions(ref);
     invalidateDashboard(ref);
     invalidateGoals(ref);
-
-    if (mounted) Navigator.pop(context);
+    Navigator.pop(context);
   }
 }

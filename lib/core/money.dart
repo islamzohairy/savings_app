@@ -12,6 +12,24 @@ String formatAmount(int amountMinor) {
   return fmt.format(amount);
 }
 
+/// Formats an amount in minor units using compact abbreviations:
+/// K for thousands, M for millions, B for billions.
+/// Used in narrow UI areas (stat columns, subtitles) to prevent overflow.
+String formatCompactAmount(int amountMinor) {
+  final amount = amountMinor / 100;
+  final absVal = amount.abs();
+  final sign = amount < 0 ? '-' : '';
+  final sym = symbolFor(activeCurrencyCode);
+  if (absVal >= 1e9) {
+    return '$sign$sym${(absVal / 1e9).toStringAsFixed(1)}B';
+  } else if (absVal >= 1e6) {
+    return '$sign$sym${(absVal / 1e6).toStringAsFixed(1)}M';
+  } else if (absVal >= 1e4) {
+    return '$sign$sym${(absVal / 1e3).toStringAsFixed(1)}K';
+  }
+  return formatAmount(amountMinor);
+}
+
 /// Converts Eastern Arabic numerals (٠–٩) and the Arabic decimal separator (٫)
 /// to their Western equivalents so downstream parsers handle them correctly.
 String toWesternDigits(String input) {

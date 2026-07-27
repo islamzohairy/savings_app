@@ -12,8 +12,8 @@ class TopExpenseTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListTile(
       dense: true,
-      title: Text(formatAmount(expense['amountMinor'] as int)),
-      subtitle: Text(expense['categoryName'] != null ? displayCategoryName(expense['categoryName'] as String, Localizations.localeOf(context).languageCode) : AppLocalizations.of(context)!.label_unknownCategory),
+      title: Text(formatAmount(expense['amountMinor'] as int), maxLines: 1, overflow: TextOverflow.ellipsis),
+      subtitle: Text(expense['categoryName'] != null ? displayCategoryName(expense['categoryName'] as String, Localizations.localeOf(context).languageCode) : AppLocalizations.of(context)!.label_unknownCategory, maxLines: 1, overflow: TextOverflow.ellipsis),
       trailing: Text(DateFormat.MMMd().format(DateTime.parse(expense['date'] as String))),
     );
   }

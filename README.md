@@ -56,7 +56,7 @@ lib/
 ├── core/
 │   ├── db/database.dart         # SQLite schema v3, migrations, settings, seed defaults, orphan repair
 │   ├── calculations.dart        # Pure functions: savingsRate, goalProgress, colorFromHex
-│   ├── money.dart               # MoneyInputFormatter, validateAmount, ArabicDigitFormatter (PIN-only)
+│   ├── money.dart               # MoneyInputFormatter, validateAmount, formatCompactAmount, ArabicDigitFormatter (PIN-only)
 │   ├── theme.dart               # Material3 light/dark with green seed
 │   ├── seed_categories.dart     # Category display name lookup (EN + AR)
 │   ├── settings_provider.dart   # Riverpod Notifier for settings key-value
@@ -134,6 +134,7 @@ Categories (`/categories`) is reached via the Activity screen's category icon.
 
 - **Money**: All amounts stored as `int` in minor units (cents). Never `double` for stored/summed amounts.
 - **Monetary input**: Always use `MoneyInputFormatter` (limits to 2 decimal places, max 12 integer digits, strips non-numeric). `ArabicDigitFormatter` only for PIN fields. Save-time validation via `validateAmount()` with SnackBar feedback. Optional fields (goal target) check `isNotEmpty` before validating.
+- **Compact money formatting**: Use `formatCompactAmount()` for narrow UI areas (stat columns, subtitles, trailing text) — K for thousands, M for millions, B for billions. Use `formatAmount()` for full-width displays.
 - **One source of truth**: Date/month boundaries go through `monthDateRange` only. Aggregation queries (month totals, category breakdowns, trends) live in one shared repository consumed by both Dashboard and Reports — never reimplemented per-feature.
 - **Refresh**: domain-scoped `invalidate*()` using `ref.invalidate()`. Never a single global refresh counter.
 - **Typed enums, not raw ints**: `TransactionType` (income/expense/saving), `GoalStatus` (active/paused/completed/archived), `CategoryType` are enums above the data-layer boundary. Raw int conversion happens only at the SQLite read/write boundary.
@@ -195,11 +196,11 @@ flutter test
 flutter test --coverage
 ```
 
-**115 tests** across 7 test files (2 pre-existing shader failures excluded):
-- `test/database_test.dart` — 41 tests (monthTotal, totalBalance, categoryBreakdown, monthlyTrend, topExpenses, savingsRate, spendable balance, goal overfunding, pagination, category filtering, **delete behavioral invariants** (goal/category/transaction delete preserves balances), **stress tests** (rapid consecutive deletes, interleaved operations), **v3 migration/orphan repair** (relink categoryId, idempotent repair, balance after repair), **goal status transitions** (active→paused→completed, active→archived, contribute when paused, withdraw from completed))
-- `test/money_test.dart` — 38 tests (toWesternDigits, MoneyInputFormatter, validateAmount, ArabicDigitFormatter, formatAmount)
+**158 tests** across 7 test files (2 pre-existing shader failures excluded):
+- `test/database_test.dart` — 73 tests (monthTotal, totalBalance, categoryBreakdown, monthlyTrend, topExpenses, savingsRate, spendable balance, goal overfunding, pagination, category filtering, **delete behavioral invariants** (goal/category/transaction delete preserves balances), **stress tests** (rapid consecutive deletes, interleaved operations, orphan repair idempotency), **v3 migration/orphan repair** (relink categoryId, idempotent repair, balance after repair), **goal status transitions** (active→paused→completed, active→archived, contribute when paused, withdraw from completed), **boundary stress** (max minor units, 50 rapid inserts, 30 categories, zero-target goal), **archive lifecycle** (archive preserves transactions, FK blocks delete with transactions, archive toggle), **financial invariants** (spendable + goals = total, savingsRate, goalProgress, categoryBreakdown totals, withdraw preserves balance, timestamps preserved), **amount validation** (zero/negative rejection), **atomicity** (contribute/withdraw atomic transactions, auto-complete/revert on target change), **projectedCompletion** (null on no data, null on zero, now when reached, future when saving))
+- `test/money_test.dart` — 50 tests (toWesternDigits, MoneyInputFormatter, validateAmount, ArabicDigitFormatter, formatAmount, formatCompactAmount)
 - `test/widget_extracted_test.dart` — 16 tests (render tests for all extracted widgets)
-- `test/calculations_test.dart` — 12 tests (savingsRate, goalProgress, colorFromHex)
+- `test/calculations_test.dart` — 17 tests (savingsRate, goalProgress, colorFromHex — valid/invalid/edge)
 - `test/widget_dialogs_test.dart` — 6 tests (GoalContributeDialog, GoalEditDialog, GoalProgressCard, GoalHistoryList behavioral tests)
 - `test/invalidation_test.dart` — 3 tests (domain-scoped invalidation regression)
 - `test/widget_test.dart` — 2 tests (app launch, RTL render)
@@ -210,15 +211,29 @@ flutter test --coverage
 flutter analyze
 ```
 
-Clean — 3 info-level warnings (all analyzer false positives with mounted checks already present). 2 pre-existing test failures from `ink_sparkle.frag` shader incompatibility in the test environment.
+Clean — 0 analyzer issues. 2 pre-existing test failures from `ink_sparkle.frag` shader incompatibility in the test environment.
 
-## User-Visible Behavior Changes (Deletion Audit)
+## User-Visible Behavior Changes (Deletion Audit + Stabilization)
 
 - **Category deletion blocked** when linked transactions exist — a SnackBar explains the block and offers to archive the category instead.
 - **Goal deletion** shows a confirmation dialog before proceeding.
 - **All delete dialogs** now display a loading spinner and disable the button during the async operation.
 - **Failed deletions** show an error SnackBar instead of failing silently.
 - **Orphaned data from prior versions** is automatically repaired on first launch after upgrade to v3 (the `Recovered / Unknown` category is created if needed).
+- **Error screens with retry** on Transactions, Reports, Goal Detail, and Goal Progress cards when data loading fails.
+- **Archived categories preserved** in edit dropdown — selecting an archived category for an existing transaction no longer silently nulls it.
+- **Compact money formatting** (K/M/B) in narrow stat columns (ReportSummaryCard, MonthSummaryCard, BalanceCard, GoalProgressCard) to prevent overflow on large amounts.
+- **App initialization failure** shows error screen with retry button instead of infinite spinner.
+- **Route parameter errors** (invalid goal ID) show error page instead of crashing.
+- **Financial mutations atomic** — contribute/withdraw execute in single SQLite transaction with rollback on failure.
+- **Goal contribute/withdraw** shows loading spinner, disables buttons during operation, catches errors with SnackBar.
+- **All financial operations** (goal edit, category insert/edit, settings save, PIN change, backup) wrapped in try/catch with error feedback.
+- **Goal history** shows error/retry state on load failure (like reports screen pattern).
+- **Goal progress card** refreshes data when goal ID changes (didUpdateWidget).
+- **App lock** handles secure storage failures gracefully.
+- **Transaction edit/delete** now invalidates goals provider (stale goal data fix).
+- **Deleted goal in dropdown** — new transactions clear selection; archived goals preserved for historical records.
+- **Text overflow protection** — amounts and names use `maxLines: 1, overflow: TextOverflow.ellipsis` in tiles.
 
 ## Project Stats
 
@@ -227,9 +242,9 @@ Clean — 3 info-level warnings (all analyzer false positives with mounted check
 | Dart files in `lib/` | 44 |
 | Lines of code in `lib/` | 6,254 |
 | Test files | 7 |
-| Lines of code in `test/` | 1,632 |
-| Total tests | 115 |
-| ARB translation keys | 161 |
+| Lines of code in `test/` | 1,750 |
+| Total tests | 158 |
+| ARB translation keys | 162 |
 | Supported languages | 2 (English, Arabic) |
 | Seed categories | 14 (+ 1 hidden recovery category) |
 | Features | 8 |

@@ -23,7 +23,7 @@ Feature-first, three layers per feature: `data/` (repo), `application/` (provide
 | `lib/app/router.dart` | go_router + bottom nav shell (5 tabs) |
 | `lib/core/db/database.dart` | SQLite schema v3, migrations, settings helpers, seed defaults (14 categories), orphan repair |
 | `lib/core/calculations.dart` | Pure functions: `savingsRate()`, `goalProgress()`, `colorFromHex()` |
-| `lib/core/money.dart` | `MoneyInputFormatter` (monetary input), `validateAmount()`, `ArabicDigitFormatter` (PIN-only), `formatAmount()`, currency symbols |
+| `lib/core/money.dart` | `MoneyInputFormatter` (monetary input), `validateAmount()`, `ArabicDigitFormatter` (PIN-only), `formatAmount()`, `formatCompactAmount()` (K/M/B for narrow UI), currency symbols |
 | `lib/core/theme.dart` | Material3 light/dark with green seed |
 | `lib/core/settings_provider.dart` | Riverpod Notifier for settings key-value |
 | `lib/core/date_utils.dart` | Billing cycle math (`monthDateRange`, prev/next) |
@@ -67,6 +67,7 @@ Categories (`/categories`) is not in the nav — reached via the Activity screen
 
 - **Money:** always `int` in minor units. Never `double` anywhere an amount is stored, summed, or passed between layers.
 - **Monetary input:** always use `MoneyInputFormatter` (limits to 2 decimal places, max 12 integer digits, strips non-numeric). `ArabicDigitFormatter` only for PIN fields. Save-time validation via `validateAmount()` with SnackBar feedback. Optional fields (goal target) check `isNotEmpty` before validating.
+- **Compact money:** use `formatCompactAmount()` in narrow UI areas (stat columns, subtitles, trailing text). Use `formatAmount()` for full-width displays.
 - **One source of truth for cross-cutting calculations:** date/month boundaries go through `monthDateRange` only; aggregation queries (month totals, category breakdowns, trends) live in one shared repository consumed by both Dashboard and Reports — never reimplemented per-feature.
 - **Reactivity:** domain-scoped invalidation via `ref.invalidate()` on the specific providers a write affects. Never a single global refresh counter that everything depends on.
 - **Typed enums, not raw ints:** `TransactionType`, `GoalStatus`, `CategoryType` are enums above the data-layer boundary. Raw int conversion happens only at the SQLite read/write boundary, nowhere else.
@@ -148,7 +149,7 @@ Seed key: `'recovered_unknown'`. Created by `_repairOrphans()` when orphaned cat
 
 ### UI guardrails
 
-All delete dialogs use `StatefulWidget` for double-tap protection (`_deleting` flag). All async operations wrapped in try/catch with SnackBar error feedback. Mounted guards on all `setState`/`ref.invalidate` calls after async gaps.
+All delete dialogs use `StatefulWidget` for double-tap protection (`_deleting` flag). All async operations wrapped in try/catch with SnackBar error feedback. Mounted guards on all `setState`/`ref.invalidate` calls after async gaps. App initialization failure shows error screen with retry. Route parameter parsing protected with `int.tryParse`. All financial mutations (contribute, withdraw) wrapped in `db.transaction` for atomicity. Amount validation rejects zero/negative values at repository boundary.
 
 ## Removed features — do not reintroduce without a dedicated pass
 
@@ -171,6 +172,8 @@ All delete dialogs use `StatefulWidget` for double-tap protection (`_deleting` f
 - [x] Decomposition cleanup: moved backup_restore to data layer, added 22 widget tests (80 total)
 - [x] Delete audit: UI guardrails (mounted checks, double-tap, loading, error handling), goal atomic delete, v3 orphan repair, 18 new tests (30 total in database_test.dart)
 - [x] Stabilization: MoneyInputFormatter + validateAmount (38 tests), filtered-list normalization, overflow fixes, mounted checks (115 total tests, 3 analyzer infos)
+- [x] Stabilization pass 2: error handling (try/catch + error UI/retry on 5 screens), archive lifecycle fix, formatCompactAmount (K/M/B for narrow UI), btn_retry ARB key, 29 new tests (boundary stress, financial invariants, archive lifecycle, pagination, compact formatter) — 144 total, 3 analyzer infos
+- [x] QA hardening: 19 tasks across 7 phases — critical error handling (app init, route parsing, financial atomicity), high error handling (goal edit, onboarding, history, progress card, app lock), medium error handling (categories, settings, backup, dropdown safety), UI overflow, 9 new tests — 158 total, 0 analyzer issues (2 pre-existing shader failures)
 
 ## Known Issues
 1. Spec called for Drift; implementation uses raw sqflite (deviation accepted)

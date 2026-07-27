@@ -24,9 +24,13 @@ class _AppLockScreenState extends State<AppLockScreen> {
   }
 
   Future<void> _init() async {
-    final existingPin = await _storage.read(key: 'app_lock_pin');
-    _isSetup = existingPin != null && existingPin.isNotEmpty;
-    setState(() {});
+    try {
+      final existingPin = await _storage.read(key: 'app_lock_pin');
+      _isSetup = existingPin != null && existingPin.isNotEmpty;
+    } catch (e) {
+      _isSetup = false;
+    }
+    if (mounted) setState(() {});
   }
 
   @override
@@ -145,24 +149,30 @@ class _AppLockScreenState extends State<AppLockScreen> {
   }
 
   Future<void> _handleComplete(String pin) async {
-    if (_isSetup) {
-      final stored = await _storage.read(key: 'app_lock_pin');
-      if (pin == stored) {
-        widget.onUnlocked?.call();
+    try {
+      if (_isSetup) {
+        final stored = await _storage.read(key: 'app_lock_pin');
+        if (pin == stored) {
+          widget.onUnlocked?.call();
+        } else {
+          setState(() {
+            _error = AppLocalizations.of(context)!.appLock_wrongPin;
+            _enteredPin = '';
+          });
+        }
       } else {
+        await _storage.write(key: 'app_lock_pin', value: pin);
         setState(() {
-          _error = AppLocalizations.of(context)!.appLock_wrongPin;
+          _isSetup = true;
           _enteredPin = '';
         });
+        widget.onUnlocked?.call();
       }
-    } else {
-      // Save new PIN
-      await _storage.write(key: 'app_lock_pin', value: pin);
+    } catch (e) {
       setState(() {
-        _isSetup = true;
+        _error = AppLocalizations.of(context)!.error_generic('$e');
         _enteredPin = '';
       });
-      widget.onUnlocked?.call();
     }
   }
 }

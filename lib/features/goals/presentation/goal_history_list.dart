@@ -21,6 +21,7 @@ class _GoalHistoryListState extends ConsumerState<GoalHistoryList> {
   final List<Map<String, dynamic>> _txns = [];
   bool _loading = true;
   bool _hasMore = true;
+  String? _error;
   static const _batchSize = 50;
   String? _cursorDate;
   int? _cursorId;
@@ -46,37 +47,63 @@ class _GoalHistoryListState extends ConsumerState<GoalHistoryList> {
   }
 
   Future<void> _loadInitial() async {
+    _error = null;
     _cursorDate = null;
     _cursorId = null;
     _txns.clear();
-    final repo = ref.read(transactionRepoProvider);
-    final batch = await repo.goalHistoryPaginated(widget.goalId, limit: _batchSize);
-    _txns.addAll(batch);
-    _hasMore = batch.length == _batchSize;
-    if (_hasMore && batch.isNotEmpty) {
-      _cursorDate = batch.last['date'] as String;
-      _cursorId = batch.last['id'] as int;
-    }
-    if (mounted) setState(() => _loading = false);
-  }
-
-  Future<void> _loadMore() async {
-    setState(() => _loading = true);
-    final repo = ref.read(transactionRepoProvider);
-    final batch = await repo.goalHistoryPaginated(widget.goalId, limit: _batchSize, cursorDate: _cursorDate, cursorId: _cursorId);
-    setState(() {
+    try {
+      final repo = ref.read(transactionRepoProvider);
+      final batch = await repo.goalHistoryPaginated(widget.goalId, limit: _batchSize);
       _txns.addAll(batch);
       _hasMore = batch.length == _batchSize;
       if (_hasMore && batch.isNotEmpty) {
         _cursorDate = batch.last['date'] as String;
         _cursorId = batch.last['id'] as int;
       }
-      _loading = false;
-    });
+      if (mounted) setState(() { _loading = false; _error = null; });
+    } catch (e) {
+      if (mounted) setState(() { _loading = false; _error = '$e'; });
+    }
+  }
+
+  Future<void> _loadMore() async {
+    setState(() => _loading = true);
+    try {
+      final repo = ref.read(transactionRepoProvider);
+      final batch = await repo.goalHistoryPaginated(widget.goalId, limit: _batchSize, cursorDate: _cursorDate, cursorId: _cursorId);
+      setState(() {
+        _txns.addAll(batch);
+        _hasMore = batch.length == _batchSize;
+        if (_hasMore && batch.isNotEmpty) {
+          _cursorDate = batch.last['date'] as String;
+          _cursorId = batch.last['id'] as int;
+        }
+        _loading = false;
+      });
+    } catch (e) {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_error != null && _txns.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.error_outline, size: 48),
+              const SizedBox(height: 12),
+              Text(AppLocalizations.of(context)!.error_generic(_error!), textAlign: TextAlign.center),
+              const SizedBox(height: 12),
+              FilledButton(onPressed: _loadInitial, child: Text(AppLocalizations.of(context)!.btn_retry)),
+            ],
+          ),
+        ),
+      );
+    }
     if (_loading && _txns.isEmpty) return const LinearProgressIndicator();
     if (_txns.isEmpty) return Text(AppLocalizations.of(context)!.emptyState_noContributions);
     return Column(
@@ -137,7 +164,7 @@ class _GoalHistoryListState extends ConsumerState<GoalHistoryList> {
                 widget.onRefresh();
               }
             } catch (e) {
-              if (context.mounted) {
+              if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text(AppLocalizations.of(context)!.error_generic('$e'))),
                 );

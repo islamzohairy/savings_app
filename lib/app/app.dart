@@ -50,6 +50,7 @@ class _GateState extends ConsumerState<_Gate> with WidgetsBindingObserver {
   bool _appLockEnabled = false;
   bool _unlocked = false;
   bool _isLoading = true;
+  String? _initError;
 
   @override
   void initState() {
@@ -72,22 +73,44 @@ class _GateState extends ConsumerState<_Gate> with WidgetsBindingObserver {
   }
 
   Future<void> _init() async {
-    final db = AppDatabase.instance;
-
-    // Load settings into reactive provider first
-    await ref.read(settingsProvider.notifier).load();
-
-    _onboardingDone = await db.hasCompletedOnboarding();
-    if (_onboardingDone) {
-      _appLockEnabled = (await db.getSetting('appLockEnabled')) == 'true';
+    setState(() { _isLoading = true; _initError = null; });
+    try {
+      final db = AppDatabase.instance;
+      await ref.read(settingsProvider.notifier).load();
+      _onboardingDone = await db.hasCompletedOnboarding();
+      if (_onboardingDone) {
+        _appLockEnabled = (await db.getSetting('appLockEnabled')) == 'true';
+      }
+      if (mounted) setState(() { _isLoading = false; _initError = null; });
+    } catch (e) {
+      if (mounted) setState(() { _isLoading = false; _initError = '$e'; });
     }
-    if (mounted) setState(() => _isLoading = false);
   }
 
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    if (_initError != null) {
+      return Scaffold(
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.error_outline, size: 48),
+                const SizedBox(height: 12),
+                Text(AppLocalizations.of(context)!.error_generic(_initError!), textAlign: TextAlign.center),
+                const SizedBox(height: 12),
+                FilledButton(onPressed: _init, child: Text(AppLocalizations.of(context)!.btn_retry)),
+              ],
+            ),
+          ),
+        ),
+      );
     }
 
     if (!_onboardingDone) {

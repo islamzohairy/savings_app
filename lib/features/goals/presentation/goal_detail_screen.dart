@@ -24,6 +24,8 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
   Map<String, dynamic>? _goal;
   int _currentAmount = 0;
   DateTime? _projected;
+  bool _loading = true;
+  String? _error;
 
   @override
   void initState() {
@@ -32,20 +34,63 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
   }
 
   Future<void> _load() async {
-    final repo = ref.read(goalRepoProvider);
-    final goal = await repo.getById(widget.goalId);
-    final amt = await repo.currentAmount(widget.goalId);
-    DateTime? proj;
-    final target = goal?['targetAmountMinor'] as int?;
-    if (target != null && target > 0) {
-      proj = await repo.projectedCompletion(widget.goalId, target);
+    try {
+      final repo = ref.read(goalRepoProvider);
+      final goal = await repo.getById(widget.goalId);
+      final amt = await repo.currentAmount(widget.goalId);
+      DateTime? proj;
+      final target = goal?['targetAmountMinor'] as int?;
+      if (target != null && target > 0) {
+        proj = await repo.projectedCompletion(widget.goalId, target);
+      }
+      if (!mounted) return;
+      setState(() { _goal = goal; _currentAmount = amt; _projected = proj; _loading = false; _error = null; });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() { _loading = false; _error = '$e'; });
     }
-    if (mounted) setState(() { _goal = goal; _currentAmount = amt; _projected = proj; });
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_goal == null) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    if (_error != null) {
+      return Scaffold(
+        appBar: AppBar(title: Text(AppLocalizations.of(context)!.appBarTitle_goals)),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.error_outline, size: 48),
+                const SizedBox(height: 12),
+                Text(AppLocalizations.of(context)!.error_generic(_error!), textAlign: TextAlign.center),
+                const SizedBox(height: 12),
+                FilledButton(onPressed: _load, child: Text(AppLocalizations.of(context)!.btn_retry)),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+    if (_loading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    if (_goal == null) {
+      return Scaffold(
+        appBar: AppBar(title: Text(AppLocalizations.of(context)!.appBarTitle_goals)),
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.search_off, size: 48),
+              const SizedBox(height: 12),
+              Text(AppLocalizations.of(context)!.error_generic('Goal not found')),
+              const SizedBox(height: 12),
+              FilledButton(onPressed: () => Navigator.pop(context), child: Text(AppLocalizations.of(context)!.btn_back)),
+            ],
+          ),
+        ),
+      );
+    }
     final g = _goal!;
     final status = GoalStatus.values[g['status'] as int];
     final target = g['targetAmountMinor'] as int?;

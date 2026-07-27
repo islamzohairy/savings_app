@@ -85,39 +85,64 @@ class GoalRepository {
   }
 
   Future<void> contribute(int goalId, int amountMinor) async {
+    if (amountMinor <= 0) throw ArgumentError('Amount must be positive');
     final db = await _db.database;
-    final now = DateTime.now().toIso8601String();
-    await db.insert('transactions', {
-      'type': 2, // saving
-      'amountMinor': amountMinor,
-      'goalId': goalId,
-      'date': now,
-      'createdAt': now,
-      'updatedAt': now,
-    });
-    final goalRows = await db.query('goals', where: 'id = ?', whereArgs: [goalId]);
-    if (goalRows.isEmpty) return;
-    final goal = goalRows.first;
-    final target = goal['targetAmountMinor'] as int?;
-    final status = goal['status'] as int;
-    if (target != null && target > 0 && status == 0) {
-      final after = await currentAmount(goalId);
-      if (after >= target) {
-        await db.update('goals', {'status': 2}, where: 'id = ?', whereArgs: [goalId]);
+    await db.transaction((txn) async {
+      final now = DateTime.now().toIso8601String();
+      await txn.insert('transactions', {
+        'type': 2,
+        'amountMinor': amountMinor,
+        'goalId': goalId,
+        'date': now,
+        'createdAt': now,
+        'updatedAt': now,
+      });
+      final goalRows = await txn.query('goals', where: 'id = ?', whereArgs: [goalId]);
+      if (goalRows.isEmpty) return;
+      final goal = goalRows.first;
+      final target = goal['targetAmountMinor'] as int?;
+      final status = goal['status'] as int;
+      if (target != null && target > 0 && status == 0) {
+        final result = await txn.rawQuery(
+          'SELECT COALESCE(SUM(amountMinor), 0) as total FROM transactions WHERE goalId = ? AND type = 2',
+          [goalId],
+        );
+        final after = (result.first['total'] as int?) ?? 0;
+        if (after >= target) {
+          await txn.update('goals', {'status': 2}, where: 'id = ?', whereArgs: [goalId]);
+        }
       }
-    }
+    });
   }
 
   Future<void> withdraw(int goalId, int amountMinor) async {
+    if (amountMinor <= 0) throw ArgumentError('Amount must be positive');
     final db = await _db.database;
-    final now = DateTime.now().toIso8601String();
-    await db.insert('transactions', {
-      'type': 2, // saving (negative = withdrawal)
-      'amountMinor': -amountMinor,
-      'goalId': goalId,
-      'date': now,
-      'createdAt': now,
-      'updatedAt': now,
+    await db.transaction((txn) async {
+      final now = DateTime.now().toIso8601String();
+      await txn.insert('transactions', {
+        'type': 2,
+        'amountMinor': -amountMinor,
+        'goalId': goalId,
+        'date': now,
+        'createdAt': now,
+        'updatedAt': now,
+      });
+      final goalRows = await txn.query('goals', where: 'id = ?', whereArgs: [goalId]);
+      if (goalRows.isEmpty) return;
+      final goal = goalRows.first;
+      final target = goal['targetAmountMinor'] as int?;
+      final status = goal['status'] as int;
+      if (status == 2) {
+        final result = await txn.rawQuery(
+          'SELECT COALESCE(SUM(amountMinor), 0) as total FROM transactions WHERE goalId = ? AND type = 2',
+          [goalId],
+        );
+        final after = (result.first['total'] as int?) ?? 0;
+        if (after < (target ?? 0)) {
+          await txn.update('goals', {'status': 0}, where: 'id = ?', whereArgs: [goalId]);
+        }
+      }
     });
   }
 }

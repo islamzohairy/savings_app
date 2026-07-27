@@ -222,4 +222,54 @@ void main() {
       expect(result, contains('£'));
     });
   });
+
+  group('formatCompactAmount', () {
+    setUp(() { activeCurrencyCode = 'USD'; });
+
+    test('formats zero', () {
+      expect(formatCompactAmount(0), '\$0.00');
+    });
+
+    test('formats below 1000000 minor units as full amount', () {
+      expect(formatCompactAmount(999999), '\$9,999.99');
+    });
+
+    test('formats 1000000 minor units as 10.0K', () {
+      expect(formatCompactAmount(1000000), '\$10.0K');
+    });
+
+    test('formats 1500000 minor units as 15.0K', () {
+      expect(formatCompactAmount(1500000), '\$15.0K');
+    });
+
+    test('formats 500000000 minor units as 5.0M', () {
+      expect(formatCompactAmount(500000000), '\$5.0M');
+    });
+
+    test('formats 5000000000 minor units as 50.0M', () {
+      expect(formatCompactAmount(5000000000), '\$50.0M');
+    });
+
+    test('formats 99900000000 minor units as 999.0M', () {
+      expect(formatCompactAmount(99900000000), '\$999.0M');
+    });
+
+    test('formats 1000000000000 minor units as 10.0B', () {
+      expect(formatCompactAmount(1000000000000), '\$10.0B');
+    });
+
+    test('formats negative large amount', () {
+      expect(formatCompactAmount(-5000000000), '-\$50.0M');
+    });
+
+    test('formats with EGP', () {
+      activeCurrencyCode = 'EGP';
+      expect(formatCompactAmount(1500000), 'E£15.0K');
+    });
+
+    test('formats with SAR', () {
+      activeCurrencyCode = 'SAR';
+      expect(formatCompactAmount(10000000000), '﷼100.0M');
+    });
+  });
 }

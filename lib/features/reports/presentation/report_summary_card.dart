@@ -49,10 +49,10 @@ class _Stat extends StatelessWidget {
       children: [
         Text(label, style: Theme.of(context).textTheme.bodySmall),
         const SizedBox(height: 4),
-        FittedBox(
-          fit: BoxFit.scaleDown,
-          child: Text(formatAmount(amount), style: TextStyle(color: color, fontWeight: FontWeight.bold)),
-        ),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(formatCompactAmount(amount), style: TextStyle(color: color, fontWeight: FontWeight.bold)),
+          ),
       ],
     );
   }

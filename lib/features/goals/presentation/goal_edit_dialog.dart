@@ -57,11 +57,19 @@ class GoalEditDialog extends ConsumerWidget {
             'name': name,
             'targetAmountMinor': targetMinor,
           };
-          await ref.read(goalRepoProvider).update(goalId, updates);
-          invalidateGoals(ref);
-          invalidateDashboard(ref);
-          onComplete();
-          if (context.mounted) Navigator.pop(context);
+          try {
+            await ref.read(goalRepoProvider).update(goalId, updates);
+            invalidateGoals(ref);
+            invalidateDashboard(ref);
+            onComplete();
+            if (context.mounted) Navigator.pop(context);
+          } catch (e) {
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(AppLocalizations.of(context)!.error_generic('$e'))),
+              );
+            }
+          }
         }, child: Text(AppLocalizations.of(context)!.btn_save)),
       ],
     );

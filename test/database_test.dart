@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:savings_app/core/date_utils.dart';
+import 'package:savings_app/core/calculations.dart';
 import 'package:savings_app/core/db/database.dart';
 import 'package:savings_app/features/transactions/data/transaction_repository.dart';
 import 'package:savings_app/features/goals/data/goal_repository.dart';
@@ -9,6 +10,7 @@ import 'package:savings_app/features/categories/data/category_repository.dart';
 void main() {
   late AppDatabase appDb;
   late TransactionRepository repo;
+  late GoalRepository goalRepo;
   late Database database;
 
   setUpAll(() {
@@ -54,6 +56,7 @@ void main() {
     );
     await appDb.setDatabase(database);
     repo = TransactionRepository(appDb);
+    goalRepo = GoalRepository(appDb);
   });
 
   tearDown(() async {
@@ -909,12 +912,6 @@ void main() {
   });
 
   group('goal status transitions', () {
-    late GoalRepository goalRepo;
-
-    setUp(() {
-      goalRepo = GoalRepository(appDb);
-    });
-
     Future<int> createGoal(String name) async {
       final now = DateTime.now().toIso8601String();
       return goalRepo.insert({
@@ -1058,6 +1055,476 @@ void main() {
       final g = await goalRepo.getById(goalId);
       expect(g!['status'], GoalStatus.archived.index,
           reason: 'goal must remain archived — contribute does not change status');
+    });
+  });
+
+  group('boundary stress tests', () {
+    test('max minor units (99,999,999,999.99) accepted by constraint', () async {
+      final now = DateTime.now().toIso8601String();
+      await database.insert('transactions', {
+        'type': 0,
+        'amountMinor': 9999999999999,
+        'date': now,
+        'createdAt': now,
+        'updatedAt': now,
+      });
+      final txns = await repo.getAll();
+      expect(txns.first['amountMinor'], 9999999999999);
+    });
+
+    test('50 expenses in rapid succession — all persisted', () async {
+      final now = DateTime.now().toIso8601String();
+      final catId = await database.insert('categories', {
+        'name': 'Boundary Cat', 'iconKey': 'tag', 'colorHex': 'FF0000',
+        'type': 1, 'isArchived': 0, 'sortOrder': 0, 'createdAt': now,
+      });
+      for (var i = 0; i < 50; i++) {
+        await database.insert('transactions', {
+          'type': 1, 'amountMinor': (i + 1) * 100, 'categoryId': catId,
+          'date': now, 'createdAt': now, 'updatedAt': now,
+        });
+      }
+      final txns = await database.query('transactions', where: 'type = 1');
+      expect(txns.length, 50);
+      final total = txns.fold<int>(0, (sum, t) => sum + (t['amountMinor'] as int));
+      expect(total, 127500, reason: 'sum 100+200+...+5000');
+    });
+
+    test('many categories with same type — all retrievable', () async {
+      final now = DateTime.now().toIso8601String();
+      for (var i = 0; i < 30; i++) {
+        await database.insert('categories', {
+          'name': 'Cat $i', 'iconKey': 'tag', 'colorHex': '000000',
+          'type': 1, 'isArchived': 0, 'sortOrder': i, 'createdAt': now,
+        });
+      }
+      final cats = await database.query('categories', where: 'type = 1');
+      expect(cats.length, greaterThanOrEqualTo(30));
+    });
+
+    test('goal with zero target — contribute works', () async {
+      final goalId = await goalRepo.insert({
+        'name': 'Zero Target',
+        'targetAmountMinor': 0,
+        'iconKey': 'flag',
+        'colorHex': '000000',
+        'status': GoalStatus.active.index,
+        'sortOrder': 0,
+        'createdAt': DateTime.now().toIso8601String(),
+      });
+
+      await goalRepo.contribute(goalId, 5000);
+
+      final amt = await goalRepo.currentAmount(goalId);
+      expect(amt, 5000);
+    });
+
+    test('multiple orphan repairs — consistent state', () async {
+      final now = DateTime.now().toIso8601String();
+      final realCatId = await database.insert('categories', {
+        'name': 'Real', 'iconKey': 'tag', 'colorHex': 'FF0000',
+        'type': 1, 'isArchived': 0, 'sortOrder': 0, 'createdAt': now,
+      });
+      await database.insert('transactions', {
+        'type': 1, 'amountMinor': 1000, 'categoryId': realCatId + 999,
+        'date': now, 'createdAt': now, 'updatedAt': now,
+      });
+
+      for (var i = 0; i < 3; i++) {
+        await database.transaction((txn) async {
+          final existing = await txn.query('categories',
+              where: 'name = ?', whereArgs: ['recovered_unknown']);
+          final recoveryId = existing.isNotEmpty
+              ? existing.first['id'] as int
+              : await txn.insert('categories', {
+                  'name': 'recovered_unknown', 'iconKey': 'label',
+                  'colorHex': '757575', 'type': 1, 'isArchived': 1,
+                  'sortOrder': 999, 'createdAt': now,
+                });
+          await txn.rawUpdate('''
+            UPDATE transactions SET categoryId = ?
+            WHERE categoryId IS NOT NULL
+              AND categoryId NOT IN (SELECT id FROM categories)
+          ''', [recoveryId]);
+        });
+      }
+
+      final recovered = await database.query('categories',
+          where: 'name = ?', whereArgs: ['recovered_unknown']);
+      expect(recovered.length, 1, reason: 'idempotent — no duplicate recovery rows');
+
+      final txns = await repo.getAll();
+      expect(txns.length, 1, reason: 'transaction preserved');
+      expect(txns.first['categoryId'], recovered.first['id']);
+    });
+  });
+
+  group('archive lifecycle tests', () {
+    test('archive category — transactions still queryable', () async {
+      final now = DateTime.now().toIso8601String();
+      final catId = await database.insert('categories', {
+        'name': 'Archive Test', 'iconKey': 'tag', 'colorHex': 'FF0000',
+        'type': 1, 'isArchived': 0, 'sortOrder': 0, 'createdAt': now,
+      });
+      await database.insert('transactions', {
+        'type': 1, 'amountMinor': 5000, 'categoryId': catId,
+        'date': now, 'createdAt': now, 'updatedAt': now,
+      });
+
+      await database.update('categories', {'isArchived': 1},
+          where: 'id = ?', whereArgs: [catId]);
+
+      final txns = await repo.getAll();
+      expect(txns.length, 1, reason: 'transaction preserved after archive');
+      expect(txns.first['categoryId'], catId, reason: 'FK intact after archive');
+    });
+
+    test('delete category with transactions — blocked by constraint', () async {
+      await database.execute('PRAGMA foreign_keys = ON');
+      final now = DateTime.now().toIso8601String();
+      final catId = await database.insert('categories', {
+        'name': 'Delete Protected', 'iconKey': 'tag', 'colorHex': 'FF0000',
+        'type': 1, 'isArchived': 0, 'sortOrder': 0, 'createdAt': now,
+      });
+      await database.insert('transactions', {
+        'type': 1, 'amountMinor': 3000, 'categoryId': catId,
+        'date': now, 'createdAt': now, 'updatedAt': now,
+      });
+
+      expect(
+        () => database.delete('categories', where: 'id = ?', whereArgs: [catId]),
+        throwsA(isA<Exception>()),
+      );
+    });
+
+    test('delete goal with contributions — goal removed, financial ledger preserved', () async {
+      final goalId = await goalRepo.insert({
+        'name': 'Goal To Delete',
+        'targetAmountMinor': 50000,
+        'iconKey': 'flag',
+        'colorHex': '3F51B5',
+        'status': GoalStatus.active.index,
+        'sortOrder': 0,
+        'createdAt': DateTime.now().toIso8601String(),
+      });
+
+      await goalRepo.contribute(goalId, 10000);
+      await goalRepo.contribute(goalId, 5000);
+
+      final txnBefore = await database.query('transactions',
+          where: 'goalId = ? AND type = 2', whereArgs: [goalId]);
+      expect(txnBefore.length, 2, reason: '2 contributions before delete');
+      final txnIds = txnBefore.map((t) => t['id'] as int).toList();
+
+      await goalRepo.delete(goalId);
+
+      final goal = await goalRepo.getById(goalId);
+      expect(goal, isNull, reason: 'goal entity removed');
+
+      final txnAfter = await database.query('transactions',
+          where: 'id IN (${txnIds.map((_) => '?').join(',')})',
+          whereArgs: txnIds);
+      expect(txnAfter.length, 2, reason: 'type=2 transactions preserved');
+      for (final t in txnAfter) {
+        expect(t['goalId'], isNull, reason: 'goalId set to NULL after goal delete');
+      }
+
+      final allTxns = await repo.getAll();
+      expect(allTxns.where((t) => t['goalId'] != null).length, 0,
+          reason: 'no transactions should have goalId after goal delete');
+    });
+
+    test('archive and unarchive category — isArchived toggles', () async {
+      final now = DateTime.now().toIso8601String();
+      final catId = await database.insert('categories', {
+        'name': 'Toggle Archive', 'iconKey': 'tag', 'colorHex': 'FF0000',
+        'type': 1, 'isArchived': 0, 'sortOrder': 0, 'createdAt': now,
+      });
+
+      await database.update('categories', {'isArchived': 1},
+          where: 'id = ?', whereArgs: [catId]);
+      var row = (await database.query('categories', where: 'id = ?', whereArgs: [catId])).first;
+      expect(row['isArchived'], 1);
+
+      await database.update('categories', {'isArchived': 0},
+          where: 'id = ?', whereArgs: [catId]);
+      row = (await database.query('categories', where: 'id = ?', whereArgs: [catId])).first;
+      expect(row['isArchived'], 0);
+    });
+  });
+
+  group('financial invariant tests', () {
+    test('spendable + goal balances = total balance after mixed transactions', () async {
+      final now = DateTime.now().toIso8601String();
+      final catId = await database.insert('categories', {
+        'name': 'Test', 'iconKey': 'tag', 'colorHex': 'FF0000',
+        'type': 1, 'isArchived': 0, 'sortOrder': 0, 'createdAt': now,
+      });
+
+      await database.insert('transactions', {
+        'type': 0, 'amountMinor': 200000, 'date': now, 'createdAt': now, 'updatedAt': now,
+      });
+      await database.insert('transactions', {
+        'type': 1, 'amountMinor': 50000, 'categoryId': catId, 'date': now, 'createdAt': now, 'updatedAt': now,
+      });
+      await database.insert('transactions', {
+        'type': 1, 'amountMinor': 30000, 'categoryId': catId, 'date': now, 'createdAt': now, 'updatedAt': now,
+      });
+
+      final goalId = await goalRepo.insert({
+        'name': 'Invariant Goal',
+        'targetAmountMinor': 100000,
+        'iconKey': 'flag',
+        'colorHex': '3F51B5',
+        'status': GoalStatus.active.index,
+        'sortOrder': 0,
+        'createdAt': now,
+      });
+      await goalRepo.contribute(goalId, 40000);
+      await goalRepo.contribute(goalId, 20000);
+
+      final spendable = await repo.spendableBalance();
+      final goalBals = await repo.totalGoalBalances();
+      final total = await repo.totalBalance();
+
+      expect(total, 120000, reason: 'totalBalance = 200k income - 80k expenses = 120k (type=2 excluded)');
+      expect(goalBals, 60000, reason: 'goal balances = 40k + 20k');
+      expect(spendable, 60000, reason: 'spendable = total(120k) - goals(60k) = 60k');
+      expect(spendable + goalBals, total, reason: 'invariant: spendable + goals = total');
+    });
+
+    test('savingsRate returns correct ratio', () async {
+      final rate = savingsRate(100000, 60000);
+      expect(rate, 40.0);
+    });
+
+    test('savingsRate with zero income returns 0', () {
+      expect(savingsRate(0, 5000), 0.0);
+    });
+
+    test('savingsRate with zero expenses returns 100', () {
+      expect(savingsRate(10000, 0), 100.0);
+    });
+
+    test('goalProgress returns correct ratio', () {
+      expect(goalProgress(50000, 100000), 0.5);
+      expect(goalProgress(100000, 100000), 1.0);
+      expect(goalProgress(0, 100000), 0.0);
+    });
+
+    test('goalProgress with zero target returns 0', () {
+      expect(goalProgress(50000, 0), 0.0);
+    });
+
+    test('categoryBreakdown totals match expense sum', () async {
+      final now = DateTime.now();
+      final nowStr = now.toIso8601String();
+      final cat1 = await database.insert('categories', {
+        'name': 'Food', 'iconKey': 'restaurant', 'colorHex': 'FF9800',
+        'type': 1, 'isArchived': 0, 'sortOrder': 0, 'createdAt': nowStr,
+      });
+      final cat2 = await database.insert('categories', {
+        'name': 'Transport', 'iconKey': 'car', 'colorHex': '2196F3',
+        'type': 1, 'isArchived': 0, 'sortOrder': 1, 'createdAt': nowStr,
+      });
+
+      await database.insert('transactions', {
+        'type': 1, 'amountMinor': 25000, 'categoryId': cat1,
+        'date': nowStr, 'createdAt': nowStr, 'updatedAt': nowStr,
+      });
+      await database.insert('transactions', {
+        'type': 1, 'amountMinor': 15000, 'categoryId': cat1,
+        'date': nowStr, 'createdAt': nowStr, 'updatedAt': nowStr,
+      });
+      await database.insert('transactions', {
+        'type': 1, 'amountMinor': 10000, 'categoryId': cat2,
+        'date': nowStr, 'createdAt': nowStr, 'updatedAt': nowStr,
+      });
+
+      final start = DateTime(now.year, now.month, 1);
+      final end = DateTime(now.year, now.month + 1, 0, 23, 59, 59);
+      final breakdown = await repo.categoryBreakdown(start, end);
+      final totalFromBreakdown = breakdown.fold<int>(0, (sum, b) => sum + (b['total'] as int));
+      final totalFromQuery = await repo.monthTotal(TransactionType.expense, start, end);
+
+      expect(totalFromBreakdown, totalFromQuery, reason: 'breakdown sum must equal total expenses');
+      expect(breakdown.length, 2, reason: 'two categories in breakdown');
+    });
+
+    test('withdraw preserves goal balance', () async {
+      final goalId = await goalRepo.insert({
+        'name': 'Withdraw Test',
+        'targetAmountMinor': 100000,
+        'iconKey': 'flag',
+        'colorHex': '3F51B5',
+        'status': GoalStatus.active.index,
+        'sortOrder': 0,
+        'createdAt': DateTime.now().toIso8601String(),
+      });
+
+      await goalRepo.contribute(goalId, 50000);
+      var amt = await goalRepo.currentAmount(goalId);
+      expect(amt, 50000, reason: 'after contribute');
+
+      await goalRepo.withdraw(goalId, 15000);
+      amt = await goalRepo.currentAmount(goalId);
+      expect(amt, 35000, reason: 'after withdraw: 50k - 15k');
+    });
+
+    test('contribute rejects zero amount', () async {
+      final goalId = await goalRepo.insert({
+        'name': 'Zero Test',
+        'targetAmountMinor': 10000,
+        'iconKey': 'flag',
+        'colorHex': '3F51B5',
+        'status': GoalStatus.active.index,
+        'sortOrder': 0,
+        'createdAt': DateTime.now().toIso8601String(),
+      });
+      expect(() => goalRepo.contribute(goalId, 0), throwsArgumentError);
+    });
+
+    test('withdraw rejects zero amount', () async {
+      final goalId = await goalRepo.insert({
+        'name': 'Zero Withdraw Test',
+        'targetAmountMinor': 10000,
+        'iconKey': 'flag',
+        'colorHex': '3F51B5',
+        'status': GoalStatus.active.index,
+        'sortOrder': 0,
+        'createdAt': DateTime.now().toIso8601String(),
+      });
+      expect(() => goalRepo.withdraw(goalId, 0), throwsArgumentError);
+    });
+
+    test('contribute rejects negative amount', () async {
+      final goalId = await goalRepo.insert({
+        'name': 'Neg Test',
+        'targetAmountMinor': 10000,
+        'iconKey': 'flag',
+        'colorHex': '3F51B5',
+        'status': GoalStatus.active.index,
+        'sortOrder': 0,
+        'createdAt': DateTime.now().toIso8601String(),
+      });
+      expect(() => goalRepo.contribute(goalId, -500), throwsArgumentError);
+    });
+
+    test('contribute atomicity: transaction and goal update succeed together', () async {
+      final goalId = await goalRepo.insert({
+        'name': 'Atomic Test',
+        'targetAmountMinor': 10000,
+        'iconKey': 'flag',
+        'colorHex': '3F51B5',
+        'status': GoalStatus.active.index,
+        'sortOrder': 0,
+        'createdAt': DateTime.now().toIso8601String(),
+      });
+
+      await goalRepo.contribute(goalId, 10000);
+
+      final amt = await goalRepo.currentAmount(goalId);
+      expect(amt, 10000, reason: 'amount should be exactly the target');
+
+      final goal = await goalRepo.getById(goalId);
+      expect(goal!['status'], GoalStatus.completed.index, reason: 'goal should auto-complete when target reached');
+    });
+
+    test('withdraw atomicity: transaction and goal state update succeed together', () async {
+      final goalId = await goalRepo.insert({
+        'name': 'Withdraw Atomic Test',
+        'targetAmountMinor': 10000,
+        'iconKey': 'flag',
+        'colorHex': '3F51B5',
+        'status': GoalStatus.completed.index,
+        'sortOrder': 0,
+        'createdAt': DateTime.now().toIso8601String(),
+      });
+
+      await goalRepo.contribute(goalId, 10000);
+      await goalRepo.withdraw(goalId, 5000);
+
+      final amt = await goalRepo.currentAmount(goalId);
+      expect(amt, 5000, reason: 'amount after partial withdrawal');
+
+      final goal = await goalRepo.getById(goalId);
+      expect(goal!['status'], GoalStatus.active.index, reason: 'goal should revert to active when below target');
+    });
+
+    test('transactions preserve correct timestamps', () async {
+      final now = DateTime.now().toIso8601String();
+      final txnId = await database.insert('transactions', {
+        'type': 0, 'amountMinor': 10000, 'date': now,
+        'createdAt': now, 'updatedAt': now,
+      });
+
+      final row = (await database.query('transactions', where: 'id = ?', whereArgs: [txnId])).first;
+      expect(row['date'], now);
+      expect(row['createdAt'], now);
+      expect(row['updatedAt'], now);
+    });
+
+    group('projectedCompletion', () {
+      test('returns null when no contributions', () async {
+        final goalId = await goalRepo.insert({
+          'name': 'Empty Goal',
+          'targetAmountMinor': 100000,
+          'iconKey': 'flag',
+          'colorHex': '3F51B5',
+          'status': GoalStatus.active.index,
+          'sortOrder': 0,
+          'createdAt': DateTime.now().toIso8601String(),
+        });
+        final result = await goalRepo.projectedCompletion(goalId, 100000);
+        expect(result, isNull);
+      });
+
+      test('returns null when total saved is zero', () async {
+        final goalId = await goalRepo.insert({
+          'name': 'Zero Saved',
+          'targetAmountMinor': 100000,
+          'iconKey': 'flag',
+          'colorHex': '3F51B5',
+          'status': GoalStatus.active.index,
+          'sortOrder': 0,
+          'createdAt': DateTime.now().toIso8601String(),
+        });
+        await insertTxn(type: 2, amountMinor: 0, date: DateTime.now().subtract(const Duration(days: 5)));
+        final result = await goalRepo.projectedCompletion(goalId, 100000);
+        expect(result, isNull);
+      });
+
+      test('returns now when target already reached', () async {
+        final goalId = await goalRepo.insert({
+          'name': 'Reached',
+          'targetAmountMinor': 10000,
+          'iconKey': 'flag',
+          'colorHex': '3F51B5',
+          'status': GoalStatus.active.index,
+          'sortOrder': 0,
+          'createdAt': DateTime.now().toIso8601String(),
+        });
+        await insertTxn(type: 2, amountMinor: 10000, date: DateTime.now().subtract(const Duration(days: 10)), goalId: goalId);
+        final result = await goalRepo.projectedCompletion(goalId, 10000);
+        expect(result, isNotNull);
+        expect(result!.isBefore(DateTime.now().add(const Duration(days: 1))), isTrue);
+      });
+
+      test('returns a future date when still saving', () async {
+        final goalId = await goalRepo.insert({
+          'name': 'Saving',
+          'targetAmountMinor': 100000,
+          'iconKey': 'flag',
+          'colorHex': '3F51B5',
+          'status': GoalStatus.active.index,
+          'sortOrder': 0,
+          'createdAt': DateTime.now().toIso8601String(),
+        });
+        await insertTxn(type: 2, amountMinor: 10000, date: DateTime.now().subtract(const Duration(days: 10)), goalId: goalId);
+        final result = await goalRepo.projectedCompletion(goalId, 100000);
+        expect(result, isNotNull);
+        expect(result!.isAfter(DateTime.now()), isTrue);
+      });
     });
   });
 }

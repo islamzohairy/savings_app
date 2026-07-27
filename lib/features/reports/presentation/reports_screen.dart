@@ -21,7 +21,7 @@ class ReportsScreen extends ConsumerStatefulWidget {
 class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   late DateTime _cycleStart;
   late DateTime _cycleEnd;
-  late Future<_ReportData> _future;
+  late Future<_ReportData?> _future;
   final List<Map<String, dynamic>> _topExpenses = [];
   bool _hasMoreTopExpenses = true;
   bool _loadingMore = false;
@@ -39,41 +39,55 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     _future = _load();
   }
 
-  Future<_ReportData> _load() async {
-    final txnRepo = ref.read(transactionRepoProvider);
-    final income = await txnRepo.monthTotal(TransactionType.income, _cycleStart, _cycleEnd);
-    final expenses = await txnRepo.monthTotal(TransactionType.expense, _cycleStart, _cycleEnd);
-    final net = income - expenses;
-    final rate = savingsRate(income, expenses);
-    final breakdown = await txnRepo.categoryBreakdown(_cycleStart, _cycleEnd);
-    final trend = await txnRepo.monthlyTrend(6, _cycleStart, 1);
-    final topBatch = await txnRepo.topExpensesPaginated(_cycleStart, _cycleEnd, limit: _topBatchSize);
-    _topExpenses
-      ..clear()
-      ..addAll(topBatch);
-    _hasMoreTopExpenses = topBatch.length == _topBatchSize;
-    if (_hasMoreTopExpenses && topBatch.isNotEmpty) {
-      _topCursorAmount = topBatch.last['amountMinor'] as int;
-      _topCursorId = topBatch.last['id'] as int;
+  Future<_ReportData?> _load() async {
+    try {
+      final txnRepo = ref.read(transactionRepoProvider);
+      final income = await txnRepo.monthTotal(TransactionType.income, _cycleStart, _cycleEnd);
+      final expenses = await txnRepo.monthTotal(TransactionType.expense, _cycleStart, _cycleEnd);
+      final net = income - expenses;
+      final rate = savingsRate(income, expenses);
+      final breakdown = await txnRepo.categoryBreakdown(_cycleStart, _cycleEnd);
+      final trend = await txnRepo.monthlyTrend(6, _cycleStart, 1);
+      final topBatch = await txnRepo.topExpensesPaginated(_cycleStart, _cycleEnd, limit: _topBatchSize);
+      _topExpenses
+        ..clear()
+        ..addAll(topBatch);
+      _hasMoreTopExpenses = topBatch.length == _topBatchSize;
+      if (_hasMoreTopExpenses && topBatch.isNotEmpty) {
+        _topCursorAmount = topBatch.last['amountMinor'] as int;
+        _topCursorId = topBatch.last['id'] as int;
+      }
+      return _ReportData(income, expenses, net, rate, breakdown, trend, List.from(_topExpenses), _hasMoreTopExpenses);
+    } catch (e) {
+      return null;
     }
-    return _ReportData(income, expenses, net, rate, breakdown, trend, List.from(_topExpenses), _hasMoreTopExpenses);
   }
 
   Future<void> _loadMoreTopExpenses() async {
     if (_loadingMore || !_hasMoreTopExpenses) return;
     setState(() => _loadingMore = true);
-    final txnRepo = ref.read(transactionRepoProvider);
-    final batch = await txnRepo.topExpensesPaginated(_cycleStart, _cycleEnd, limit: _topBatchSize, cursorAmountMinor: _topCursorAmount, cursorId: _topCursorId);
-    if (!mounted) return;
-    setState(() {
-      _topExpenses.addAll(batch);
-      _hasMoreTopExpenses = batch.length == _topBatchSize;
-      if (_hasMoreTopExpenses && batch.isNotEmpty) {
-        _topCursorAmount = batch.last['amountMinor'] as int;
-        _topCursorId = batch.last['id'] as int;
+    try {
+      final txnRepo = ref.read(transactionRepoProvider);
+      final batch = await txnRepo.topExpensesPaginated(_cycleStart, _cycleEnd, limit: _topBatchSize, cursorAmountMinor: _topCursorAmount, cursorId: _topCursorId);
+      if (!mounted) return;
+      setState(() {
+        _topExpenses.addAll(batch);
+        _hasMoreTopExpenses = batch.length == _topBatchSize;
+        if (_hasMoreTopExpenses && batch.isNotEmpty) {
+          _topCursorAmount = batch.last['amountMinor'] as int;
+          _topCursorId = batch.last['id'] as int;
+        }
+        _loadingMore = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _loadingMore = false);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppLocalizations.of(context)!.error_generic('$e'))),
+        );
       }
-      _loadingMore = false;
-    });
+    }
   }
 
   void _prevCycle() {
@@ -104,10 +118,32 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text(AppLocalizations.of(context)!.appBarTitle_reports)),
-      body: FutureBuilder<_ReportData>(
+      body: FutureBuilder<_ReportData?>(
         future: _future,
         builder: (ctx, snap) {
-          if (!snap.hasData) return const Center(child: CircularProgressIndicator());
+          if (snap.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snap.data == null) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.error_outline, size: 48),
+                    const SizedBox(height: 12),
+                    Text(AppLocalizations.of(context)!.error_generic(''), textAlign: TextAlign.center),
+                    const SizedBox(height: 12),
+                    FilledButton(
+                      onPressed: () => setState(() => _future = _load()),
+                      child: Text(AppLocalizations.of(context)!.btn_retry),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
           final d = snap.data!;
           return ListView(
             padding: const EdgeInsets.all(16),

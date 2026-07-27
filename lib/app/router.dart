@@ -24,7 +24,28 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(path: '/goals', builder: (_, _) => const GoalsScreen()),
           GoRoute(
             path: '/goals/:id',
-            builder: (_, state) => GoalDetailScreen(goalId: int.parse(state.pathParameters['id']!)),
+            builder: (_, state) {
+              final idStr = state.pathParameters['id'];
+              final id = int.tryParse(idStr ?? '');
+              if (id == null) {
+                return Scaffold(
+                  body: Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(32),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.error_outline, size: 48),
+                          const SizedBox(height: 12),
+                          Text('Invalid goal ID', textAlign: TextAlign.center),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              }
+              return GoalDetailScreen(goalId: id);
+            },
           ),
           GoRoute(path: '/reports', builder: (_, _) => const ReportsScreen()),
           GoRoute(path: '/settings', builder: (_, _) => const SettingsScreen()),

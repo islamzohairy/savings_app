@@ -237,6 +237,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get btn_loadMore => 'Load more';
 
   @override
+  String get btn_retry => 'Retry';
+
+  @override
   String get btn_contribute => 'Contribute';
 
   @override

@@ -85,7 +85,17 @@ class CategoriesScreen extends ConsumerWidget {
         _showEditDialog(context, ref, cat);
         break;
       case 'delete':
-        final count = await repo.countTransactions(cat['id'] as int);
+        int count;
+        try {
+          count = await repo.countTransactions(cat['id'] as int);
+        } catch (e) {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(AppLocalizations.of(context)!.error_generic('$e'))),
+            );
+          }
+          break;
+        }
         if (!context.mounted) return;
         if (count > 0) {
           await showDialog(
@@ -168,17 +178,25 @@ class CategoriesScreen extends ConsumerWidget {
           TextButton(onPressed: () => Navigator.pop(ctx), child: Text(AppLocalizations.of(context)!.btn_cancel)),
           FilledButton(onPressed: () async {
             if (nameCtrl.text.trim().isEmpty) return;
-            await ref.read(categoryRepoProvider).insert({
-              'name': nameCtrl.text.trim(),
-              'iconKey': 'label',
-              'colorHex': '757575',
-              'type': type.index,
-              'isArchived': 0,
-              'sortOrder': 99,
-              'createdAt': DateTime.now().toIso8601String(),
-            });
-            invalidateCategories(ref);
-            if (ctx.mounted) Navigator.pop(ctx);
+            try {
+              await ref.read(categoryRepoProvider).insert({
+                'name': nameCtrl.text.trim(),
+                'iconKey': 'label',
+                'colorHex': '757575',
+                'type': type.index,
+                'isArchived': 0,
+                'sortOrder': 99,
+                'createdAt': DateTime.now().toIso8601String(),
+              });
+              invalidateCategories(ref);
+              if (ctx.mounted) Navigator.pop(ctx);
+            } catch (e) {
+              if (ctx.mounted) {
+                ScaffoldMessenger.of(ctx).showSnackBar(
+                  SnackBar(content: Text(AppLocalizations.of(context)!.error_generic('$e'))),
+                );
+              }
+            }
           }, child: Text(AppLocalizations.of(context)!.btn_add)),
         ],
       ),
@@ -196,11 +214,19 @@ class CategoriesScreen extends ConsumerWidget {
           TextButton(onPressed: () => Navigator.pop(ctx), child: Text(AppLocalizations.of(context)!.btn_cancel)),
           FilledButton(onPressed: () async {
             if (nameCtrl.text.trim().isEmpty) return;
-            await ref.read(categoryRepoProvider).update(cat['id'] as int, {
-              'name': nameCtrl.text.trim(),
-            });
-            invalidateCategories(ref);
-            if (ctx.mounted) Navigator.pop(ctx);
+            try {
+              await ref.read(categoryRepoProvider).update(cat['id'] as int, {
+                'name': nameCtrl.text.trim(),
+              });
+              invalidateCategories(ref);
+              if (ctx.mounted) Navigator.pop(ctx);
+            } catch (e) {
+              if (ctx.mounted) {
+                ScaffoldMessenger.of(ctx).showSnackBar(
+                  SnackBar(content: Text(AppLocalizations.of(context)!.error_generic('$e'))),
+                );
+              }
+            }
           }, child: Text(AppLocalizations.of(context)!.btn_save)),
         ],
       ),

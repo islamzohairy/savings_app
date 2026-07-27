@@ -67,7 +67,7 @@ class MonthSummaryCard extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(AppLocalizations.of(context)!.label_movedToGoals),
-                  Text(formatAmount(movedToGoals), style: Theme.of(context).textTheme.titleSmall),
+                  Text(formatCompactAmount(movedToGoals), style: Theme.of(context).textTheme.titleSmall),
                 ],
               ),
             ],
@@ -90,10 +90,10 @@ class _StatColumn extends StatelessWidget {
       children: [
         Text(label, style: Theme.of(context).textTheme.bodySmall),
         const SizedBox(height: 4),
-        FittedBox(
-          fit: BoxFit.scaleDown,
-          child: Text(formatAmount(amount), style: Theme.of(context).textTheme.titleSmall?.copyWith(color: color)),
-        ),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(formatCompactAmount(amount), style: Theme.of(context).textTheme.titleSmall?.copyWith(color: color)),
+          ),
       ],
     );
   }

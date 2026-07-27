@@ -518,6 +518,12 @@ abstract class AppLocalizations {
   /// **'Load more'**
   String get btn_loadMore;
 
+  /// No description provided for @btn_retry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get btn_retry;
+
   /// No description provided for @btn_contribute.
   ///
   /// In en, this message translates to:
