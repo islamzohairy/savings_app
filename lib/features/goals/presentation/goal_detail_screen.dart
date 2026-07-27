@@ -63,7 +63,9 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
               if (status == GoalStatus.active) PopupMenuItem(value: 'pause', child: Text(AppLocalizations.of(context)!.menu_pause)),
               if (status == GoalStatus.paused) PopupMenuItem(value: 'resume', child: Text(AppLocalizations.of(context)!.menu_resume)),
               if (status != GoalStatus.completed) PopupMenuItem(value: 'complete', child: Text(AppLocalizations.of(context)!.menu_markComplete)),
-              PopupMenuItem(value: 'archive', child: Text(AppLocalizations.of(context)!.menu_archive)),
+              if (status == GoalStatus.completed) PopupMenuItem(value: 'reopen', child: Text(AppLocalizations.of(context)!.menu_reopen)),
+              if (status == GoalStatus.archived) PopupMenuItem(value: 'unarchive', child: Text(AppLocalizations.of(context)!.menu_unarchive)),
+              if (status != GoalStatus.archived) PopupMenuItem(value: 'archive', child: Text(AppLocalizations.of(context)!.menu_archive)),
               PopupMenuItem(value: 'delete', child: Text(AppLocalizations.of(context)!.menu_delete)),
             ],
           ),
@@ -102,7 +104,9 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
             children: [
               Expanded(
                 child: FilledButton.icon(
-                  onPressed: () => _contribute(context),
+                  onPressed: (status == GoalStatus.active || status == GoalStatus.paused)
+                      ? () => _contribute(context)
+                      : null,
                   icon: const Icon(Icons.add),
                   label: Text(AppLocalizations.of(context)!.btn_contribute),
                 ),
@@ -193,6 +197,28 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
       case 'archive':
         try {
           await repo.update(id, {'status': GoalStatus.archived.index});
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(AppLocalizations.of(context)!.error_generic('$e'))),
+            );
+          }
+        }
+        break;
+      case 'reopen':
+        try {
+          await repo.update(id, {'status': GoalStatus.active.index});
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(AppLocalizations.of(context)!.error_generic('$e'))),
+            );
+          }
+        }
+        break;
+      case 'unarchive':
+        try {
+          await repo.update(id, {'status': GoalStatus.active.index});
         } catch (e) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(

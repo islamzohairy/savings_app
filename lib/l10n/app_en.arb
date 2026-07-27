@@ -118,6 +118,7 @@
   "menu_pause": "Pause",
   "menu_resume": "Resume",
   "menu_markComplete": "Mark Complete",
+  "menu_reopen": "Reopen",
 
   "fieldLabel_amount": "Amount",
   "fieldLabel_name": "Name",

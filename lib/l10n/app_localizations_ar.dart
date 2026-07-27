@@ -264,6 +264,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get menu_markComplete => 'تحديد كمكتمل';
 
   @override
+  String get menu_reopen => 'إعادة فتح';
+
+  @override
   String get fieldLabel_amount => 'المبلغ';
 
   @override

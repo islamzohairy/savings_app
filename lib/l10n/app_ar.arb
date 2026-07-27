@@ -118,6 +118,7 @@
   "menu_pause": "إيقاف مؤقت",
   "menu_resume": "استئناف",
   "menu_markComplete": "تحديد كمكتمل",
+  "menu_reopen": "إعادة فتح",
 
   "fieldLabel_amount": "المبلغ",
   "fieldLabel_name": "الاسم",

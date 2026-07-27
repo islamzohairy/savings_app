@@ -264,6 +264,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get menu_markComplete => 'Mark Complete';
 
   @override
+  String get menu_reopen => 'Reopen';
+
+  @override
   String get fieldLabel_amount => 'Amount';
 
   @override

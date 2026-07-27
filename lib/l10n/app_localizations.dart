@@ -572,6 +572,12 @@ abstract class AppLocalizations {
   /// **'Mark Complete'**
   String get menu_markComplete;
 
+  /// No description provided for @menu_reopen.
+  ///
+  /// In en, this message translates to:
+  /// **'Reopen'**
+  String get menu_reopen;
+
   /// No description provided for @fieldLabel_amount.
   ///
   /// In en, this message translates to:

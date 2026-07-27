@@ -907,4 +907,157 @@ void main() {
       expect(spendable + goalBals, lifetime, reason: 'invariant holds after repair');
     });
   });
+
+  group('goal status transitions', () {
+    late GoalRepository goalRepo;
+
+    setUp(() {
+      goalRepo = GoalRepository(appDb);
+    });
+
+    Future<int> createGoal(String name) async {
+      final now = DateTime.now().toIso8601String();
+      return goalRepo.insert({
+        'name': name,
+        'targetAmountMinor': 50000,
+        'iconKey': 'flag',
+        'colorHex': '3F51B5',
+        'status': GoalStatus.active.index,
+        'sortOrder': 0,
+        'createdAt': now,
+      });
+    }
+
+    Future<int> getStatus(int goalId) async {
+      final g = await goalRepo.getById(goalId);
+      return g!['status'] as int;
+    }
+
+    test('active → paused → resume → active', () async {
+      final goalId = await createGoal('Pause Test');
+
+      expect(await getStatus(goalId), GoalStatus.active.index);
+
+      await goalRepo.update(goalId, {'status': GoalStatus.paused.index});
+      expect(await getStatus(goalId), GoalStatus.paused.index);
+
+      await goalRepo.update(goalId, {'status': GoalStatus.active.index});
+      expect(await getStatus(goalId), GoalStatus.active.index);
+    });
+
+    test('active → complete → reopen → active', () async {
+      final goalId = await createGoal('Complete Test');
+
+      expect(await getStatus(goalId), GoalStatus.active.index);
+
+      await goalRepo.update(goalId, {'status': GoalStatus.completed.index});
+      expect(await getStatus(goalId), GoalStatus.completed.index);
+
+      await goalRepo.update(goalId, {'status': GoalStatus.active.index});
+      expect(await getStatus(goalId), GoalStatus.active.index);
+    });
+
+    test('active → archive → unarchive → active', () async {
+      final goalId = await createGoal('Archive Test');
+
+      expect(await getStatus(goalId), GoalStatus.active.index);
+
+      await goalRepo.update(goalId, {'status': GoalStatus.archived.index});
+      expect(await getStatus(goalId), GoalStatus.archived.index);
+
+      await goalRepo.update(goalId, {'status': GoalStatus.active.index});
+      expect(await getStatus(goalId), GoalStatus.active.index);
+    });
+
+    test('paused → complete → reopen → active', () async {
+      final goalId = await createGoal('Paused Complete Test');
+
+      await goalRepo.update(goalId, {'status': GoalStatus.paused.index});
+      expect(await getStatus(goalId), GoalStatus.paused.index);
+
+      await goalRepo.update(goalId, {'status': GoalStatus.completed.index});
+      expect(await getStatus(goalId), GoalStatus.completed.index);
+
+      await goalRepo.update(goalId, {'status': GoalStatus.active.index});
+      expect(await getStatus(goalId), GoalStatus.active.index);
+    });
+
+    test('paused → archive → unarchive → active', () async {
+      final goalId = await createGoal('Paused Archive Test');
+
+      await goalRepo.update(goalId, {'status': GoalStatus.paused.index});
+      expect(await getStatus(goalId), GoalStatus.paused.index);
+
+      await goalRepo.update(goalId, {'status': GoalStatus.archived.index});
+      expect(await getStatus(goalId), GoalStatus.archived.index);
+
+      await goalRepo.update(goalId, {'status': GoalStatus.active.index});
+      expect(await getStatus(goalId), GoalStatus.active.index);
+    });
+
+    test('completed → archive → unarchive → active', () async {
+      final goalId = await createGoal('Completed Archive Test');
+
+      await goalRepo.update(goalId, {'status': GoalStatus.completed.index});
+      expect(await getStatus(goalId), GoalStatus.completed.index);
+
+      await goalRepo.update(goalId, {'status': GoalStatus.archived.index});
+      expect(await getStatus(goalId), GoalStatus.archived.index);
+
+      await goalRepo.update(goalId, {'status': GoalStatus.active.index});
+      expect(await getStatus(goalId), GoalStatus.active.index);
+    });
+
+    test('getById returns correct status int after every transition', () async {
+      final goalId = await createGoal('Status Integrity Test');
+
+      final statuses = [
+        GoalStatus.paused.index,
+        GoalStatus.active.index,
+        GoalStatus.completed.index,
+        GoalStatus.archived.index,
+        GoalStatus.active.index,
+      ];
+
+      for (final s in statuses) {
+        await goalRepo.update(goalId, {'status': s});
+        final g = await goalRepo.getById(goalId);
+        expect(g!['status'], s, reason: 'status should be $s after update');
+      }
+    });
+
+    test('contribute to completed goal — transaction inserts, goal stays completed', () async {
+      final goalId = await createGoal('Contribute Completed Test');
+
+      await goalRepo.update(goalId, {'status': GoalStatus.completed.index});
+      expect(await getStatus(goalId), GoalStatus.completed.index);
+
+      await goalRepo.contribute(goalId, 10000);
+
+      final txns = await database.query('transactions',
+          where: 'goalId = ? AND type = 2', whereArgs: [goalId]);
+      expect(txns.length, 1, reason: 'contribution transaction must be inserted');
+
+      final g = await goalRepo.getById(goalId);
+      expect(g!['status'], GoalStatus.completed.index,
+          reason: 'goal must remain completed — contribute does not change status');
+    });
+
+    test('contribute to archived goal — transaction inserts, goal stays archived', () async {
+      final goalId = await createGoal('Contribute Archived Test');
+
+      await goalRepo.update(goalId, {'status': GoalStatus.archived.index});
+      expect(await getStatus(goalId), GoalStatus.archived.index);
+
+      await goalRepo.contribute(goalId, 10000);
+
+      final txns = await database.query('transactions',
+          where: 'goalId = ? AND type = 2', whereArgs: [goalId]);
+      expect(txns.length, 1, reason: 'contribution transaction must be inserted');
+
+      final g = await goalRepo.getById(goalId);
+      expect(g!['status'], GoalStatus.archived.index,
+          reason: 'goal must remain archived — contribute does not change status');
+    });
+  });
 }
