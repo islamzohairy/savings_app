@@ -4,6 +4,7 @@ import '../../../core/db/database.dart';
 import '../../../core/money.dart';
 import '../../../core/settings_provider.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../goals/application/goal_provider.dart';
 import '../../transactions/application/transaction_provider.dart';
 
 class OnboardingScreen extends ConsumerStatefulWidget {
@@ -246,6 +247,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   Future<void> _finish() async {
     final db = AppDatabase.instance;
     await ref.read(settingsProvider.notifier).set('currencyCode', _currency);
+    if (!mounted) return;
 
     final balanceMinor = parseAmountToMinor(_balanceCtrl.text);
     if (balanceMinor > 0) {
@@ -264,8 +266,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     if (_goalNameCtrl.text.trim().isNotEmpty) {
       final goalMinor = parseAmountToMinor(_goalAmountCtrl.text);
       final now = DateTime.now().toIso8601String();
-      final dbInstance = await db.database;
-      final goalId = await dbInstance.insert('goals', {
+      await ref.read(goalRepoProvider).insert({
         'name': _goalNameCtrl.text.trim(),
         'targetAmountMinor': goalMinor > 0 ? goalMinor : null,
         'iconKey': 'flag',
@@ -274,18 +275,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         'sortOrder': 0,
         'createdAt': now,
       });
-      if (goalMinor > 0) {
-        final txnRepo = ref.read(transactionRepoProvider);
-        await txnRepo.insert({
-          'type': TransactionType.saving.index,
-          'amountMinor': goalMinor,
-          'goalId': goalId,
-          'date': now,
-          'note': AppLocalizations.of(context)!.note_initialContribution,
-          'createdAt': now,
-          'updatedAt': now,
-        });
-      }
     }
 
     await db.completeOnboarding();
