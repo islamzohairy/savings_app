@@ -122,31 +122,79 @@ class _GoalHistoryListState extends ConsumerState<GoalHistoryList> {
 
   void _handleTxnMenu(String action, Map<String, dynamic> t) async {
     if (action == 'delete') {
-      final confirmed = await showDialog<bool>(
+      await showDialog<bool>(
         context: context,
-        builder: (ctx) => AlertDialog(
-          title: Text(AppLocalizations.of(context)!.dialog_deleteEntryTitle),
-          content: Text(AppLocalizations.of(context)!.dialog_deleteEntryConfirm),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(AppLocalizations.of(context)!.btn_cancel)),
-            FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text(AppLocalizations.of(context)!.btn_delete)),
-          ],
+        builder: (ctx) => _HistoryDeleteDialog(
+          onDelete: () async {
+            try {
+              await ref.read(transactionRepoProvider).delete(t['id'] as int);
+              invalidateTransactions(ref);
+              invalidateDashboard(ref);
+              invalidateGoals(ref);
+              if (ctx.mounted) Navigator.pop(ctx);
+              if (mounted) {
+                await _loadInitial();
+                widget.onRefresh();
+              }
+            } catch (e) {
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(AppLocalizations.of(context)!.error_generic('$e'))),
+                );
+              }
+            }
+          },
         ),
       );
-      if (confirmed != true) return;
-      await ref.read(transactionRepoProvider).delete(t['id'] as int);
-      invalidateTransactions(ref);
-      invalidateDashboard(ref);
-      invalidateGoals(ref);
     } else if (action == 'edit') {
       if (mounted) {
+        final fresh = await ref.read(transactionRepoProvider).getById(t['id'] as int);
+        if (!mounted) return;
         await Navigator.push(context, MaterialPageRoute(
-          builder: (_) => AddEditTransactionScreen(transaction: t),
+          builder: (_) => AddEditTransactionScreen(transaction: fresh ?? t),
         ));
         invalidateGoals(ref);
+        invalidateDashboard(ref);
+        if (mounted) {
+          await _loadInitial();
+          widget.onRefresh();
+        }
       }
     }
-    await _loadInitial();
-    widget.onRefresh();
+  }
+}
+
+class _HistoryDeleteDialog extends StatefulWidget {
+  const _HistoryDeleteDialog({required this.onDelete});
+  final Future<void> Function() onDelete;
+
+  @override
+  State<_HistoryDeleteDialog> createState() => _HistoryDeleteDialogState();
+}
+
+class _HistoryDeleteDialogState extends State<_HistoryDeleteDialog> {
+  bool _deleting = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(AppLocalizations.of(context)!.dialog_deleteEntryTitle),
+      content: Text(AppLocalizations.of(context)!.dialog_deleteEntryConfirm),
+      actions: [
+        TextButton(
+          onPressed: _deleting ? null : () => Navigator.pop(context, false),
+          child: Text(AppLocalizations.of(context)!.btn_cancel),
+        ),
+        FilledButton(
+          onPressed: _deleting ? null : () async {
+            setState(() => _deleting = true);
+            await widget.onDelete();
+          },
+          child: _deleting
+              ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+              : Text(AppLocalizations.of(context)!.btn_delete),
+        ),
+      ],
+    );
   }
 }

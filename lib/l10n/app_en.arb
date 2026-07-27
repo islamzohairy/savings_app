@@ -109,6 +109,7 @@
   "btn_loadMore": "Load more",
   "btn_contribute": "Contribute",
   "btn_withdraw": "Withdraw",
+  "btn_ok": "OK",
 
   "menu_edit": "Edit",
   "menu_delete": "Delete",
@@ -155,6 +156,13 @@
   "@categoryInUseWarning": {
     "placeholders": { "count": { "type": "int" } }
   },
+
+  "categoryDeleteBlocked": "This category is used by {count} {count, plural, one{transaction} other{transactions}} and cannot be deleted. Use Archive instead.",
+  "@categoryDeleteBlocked": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+
+  "dialog_deleteActivityConfirm": "This action cannot be undone.",
 
   "categoryType_income": "INCOME",
   "categoryType_expense": "EXPENSE",

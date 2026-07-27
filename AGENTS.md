@@ -21,7 +21,7 @@ Feature-first, three layers per feature: `data/` (repo), `application/` (provide
 | `lib/main.dart` | Entry point, ProviderScope |
 | `lib/app/app.dart` | MaterialApp + gate (onboarding → lock → main) |
 | `lib/app/router.dart` | go_router + bottom nav shell (5 tabs) |
-| `lib/core/db/database.dart` | SQLite schema v2, migrations, settings helpers, seed defaults (14 categories) |
+| `lib/core/db/database.dart` | SQLite schema v3, migrations, settings helpers, seed defaults (14 categories), orphan repair |
 | `lib/core/calculations.dart` | Pure functions: `savingsRate()`, `goalProgress()`, `colorFromHex()` |
 | `lib/core/money.dart` | `formatAmount(int minor)`, `parseAmountToMinor(String)`, currency symbols |
 | `lib/core/theme.dart` | Material3 light/dark with green seed |
@@ -121,6 +121,34 @@ Categories (`/categories`) is not in the nav — reached via the Activity screen
 
 The original product plan listed "optional local encryption of stored data" as a non-functional requirement. The SQLite file itself isn't encrypted at rest — only the PIN is, via `flutter_secure_storage`. **Decision: accepted as-is.** This is an offline, single-user, non-cloud app; the PIN already gates app access, which covers the realistic threat model (someone else picks up an unlocked phone). Defending against extraction from a rooted/jailbroken device is a materially higher bar than this app needs to clear. Revisit only if the app's data sensitivity or threat model changes.
 
+## Deletion policies
+
+| Entity | Delete? | Behavior |
+|--------|---------|----------|
+| **Category** | Only if no transactions reference it | Blocked with SnackBar when linked transactions exist; offer archive instead. Physical delete only when `countTransactions == 0`. |
+| **Goal** | Yes | Atomic delete inside `db.transaction`: all related `goalId` references SET NULL, goal entity removed. Financial ledger (type=2 transactions) is **never** deleted. |
+| **Transaction** | Yes | Standard delete. Balances recalculated via existing aggregation queries. |
+
+### Referential integrity
+
+- `PRAGMA foreign_keys = ON` enforced after every `openDatabase` call (enforced in app and tests).
+- FK constraints on `transactions.categoryId → categories(id)` and `transactions.goalId → goals(id)` defined in both `_createTables` and `onUpgrade` v1→v2.
+
+### Migration: orphan repair (v3)
+
+Database version is 3. On upgrade from v2→v3, `_repairOrphans()` runs:
+- Orphaned `categoryId` (references deleted category) → relinks to recovery category.
+- Orphaned `goalId` (references deleted goal) → set to NULL.
+- Never deletes orphaned rows. Preserves financial ledger.
+
+### Recovery category
+
+Seed key: `'recovered_unknown'`. Created by `_repairOrphans()` when orphaned categories exist. Always archived (`isArchived = 1`). Localized via `seedCategoryDisplayNames` in `seed_categories.dart`.
+
+### UI guardrails
+
+All delete dialogs use `StatefulWidget` for double-tap protection (`_deleting` flag). All async operations wrapped in try/catch with SnackBar error feedback. Mounted guards on all `setState`/`ref.invalidate` calls after async gaps.
+
 ## Removed features — do not reintroduce without a dedicated pass
 
 - **Biometric authentication** — removed after repeated crashes. PIN is the only lock method until this gets its own careful, tested reintroduction.
@@ -140,6 +168,7 @@ The original product plan listed "optional local encryption of stored data" as a
 - [x] Architecture review: separation of concerns, domain-scoped invalidation, typed enums, ValueKey on list items, mounted guards
 - [x] Screen decomposition: extracted 13 standalone widgets from 5 large screens (reports, dashboard, goal_detail, transactions, settings)
 - [x] Decomposition cleanup: moved backup_restore to data layer, added 22 widget tests (80 total)
+- [x] Delete audit: UI guardrails (mounted checks, double-tap, loading, error handling), goal atomic delete, v3 orphan repair, 18 new tests (30 total in database_test.dart)
 
 ## Known Issues
 1. Spec called for Drift; implementation uses raw sqflite (deviation accepted)

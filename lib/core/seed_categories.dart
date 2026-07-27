@@ -13,6 +13,7 @@ const seedCategoryDisplayNames = <String, Map<String, String>>{
   'Gifts': {'en': 'Gifts', 'ar': 'هدايا'},
   'Investments / Interest': {'en': 'Investments / Interest', 'ar': 'استثمارات / فوائد'},
   'Other Income': {'en': 'Other Income', 'ar': 'دخل آخر'},
+  'recovered_unknown': {'en': 'Recovered / Unknown', 'ar': 'مستعاد / غير معروف'},
 };
 
 String displayCategoryName(String dbKey, String languageCode) {

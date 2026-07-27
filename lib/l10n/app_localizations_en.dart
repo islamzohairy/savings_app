@@ -240,6 +240,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get btn_withdraw => 'Withdraw';
 
   @override
+  String get btn_ok => 'OK';
+
+  @override
   String get menu_edit => 'Edit';
 
   @override
@@ -369,6 +372,20 @@ class AppLocalizationsEn extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String categoryDeleteBlocked(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'transactions',
+      one: 'transaction',
+    );
+    return 'This category is used by $count $_temp0 and cannot be deleted. Use Archive instead.';
+  }
+
+  @override
+  String get dialog_deleteActivityConfirm => 'This action cannot be undone.';
 
   @override
   String get categoryType_income => 'INCOME';

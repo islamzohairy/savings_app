@@ -45,6 +45,32 @@ class _AddEditTransactionScreenState extends ConsumerState<AddEditTransactionScr
     }
   }
 
+  bool _goalIdNormalized = false;
+  bool _categoryIdNormalized = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_isEdit && !_goalIdNormalized && _goalId != null && _type == TransactionType.saving) {
+      final goals = ref.read(goalsProvider).value;
+      if (goals != null) {
+        _goalIdNormalized = true;
+        if (!goals.any((g) => g['id'] as int == _goalId)) {
+          _goalId = null;
+        }
+      }
+    }
+    if (_isEdit && !_categoryIdNormalized && _categoryId != null && _type != TransactionType.saving) {
+      final cats = ref.read(categoriesProvider).value;
+      if (cats != null) {
+        _categoryIdNormalized = true;
+        if (!cats.any((c) => c['id'] as int == _categoryId)) {
+          _categoryId = null;
+        }
+      }
+    }
+  }
+
   @override
   void dispose() {
     _amountCtrl.dispose();

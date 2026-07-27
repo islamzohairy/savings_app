@@ -60,34 +60,88 @@ class CategoriesScreen extends ConsumerWidget {
     final repo = ref.read(categoryRepoProvider);
     switch (action) {
       case 'archive':
-        await repo.archive(cat['id'] as int);
+        try {
+          await repo.archive(cat['id'] as int);
+        } catch (e) {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(AppLocalizations.of(context)!.error_generic('$e'))),
+            );
+          }
+        }
+        break;
       case 'unarchive':
-        await repo.unarchive(cat['id'] as int);
+        try {
+          await repo.unarchive(cat['id'] as int);
+        } catch (e) {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(AppLocalizations.of(context)!.error_generic('$e'))),
+            );
+          }
+        }
+        break;
       case 'edit':
         _showEditDialog(context, ref, cat);
+        break;
       case 'delete':
         final count = await repo.countTransactions(cat['id'] as int);
-        if (context.mounted) {
-          final confirmed = await showDialog<bool>(
+        if (!context.mounted) return;
+        if (count > 0) {
+          await showDialog(
             context: context,
             builder: (ctx) => AlertDialog(
               title: Text(AppLocalizations.of(context)!.dialog_deleteCategoryTitle),
-              content: Text(count > 0
-                  ? AppLocalizations.of(context)!.categoryInUseWarning(count)
-                  : AppLocalizations.of(context)!.dialog_deleteCategoryConfirm),
+              content: Text(AppLocalizations.of(context)!.categoryDeleteBlocked(count)),
               actions: [
-                TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(AppLocalizations.of(context)!.btn_cancel)),
-                FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text(AppLocalizations.of(context)!.btn_delete)),
+                TextButton(onPressed: () => Navigator.pop(ctx), child: Text(AppLocalizations.of(context)!.btn_cancel)),
+                FilledButton(
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    _archiveCategory(ref, context, cat);
+                  },
+                  child: Text(AppLocalizations.of(context)!.menu_archive),
+                ),
               ],
             ),
           );
-          if (confirmed == true) {
-            await repo.delete(cat['id'] as int);
-            invalidateCategories(ref);
-          }
+          return;
         }
+        await showDialog(
+          context: context,
+          builder: (ctx) => _CategoryDeleteDialog(
+            onDelete: () async {
+              try {
+                await repo.delete(cat['id'] as int);
+                invalidateCategories(ref);
+                if (ctx.mounted) Navigator.pop(ctx);
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(AppLocalizations.of(context)!.error_generic('$e'))),
+                  );
+                }
+              }
+            },
+          ),
+        );
+        break;
     }
     invalidateCategories(ref);
+  }
+
+  void _archiveCategory(WidgetRef ref, BuildContext context, Map<String, dynamic> cat) async {
+    final repo = ref.read(categoryRepoProvider);
+    try {
+      await repo.archive(cat['id'] as int);
+      invalidateCategories(ref);
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppLocalizations.of(context)!.error_generic('$e'))),
+        );
+      }
+    }
   }
 
   void _showAddDialog(BuildContext context, WidgetRef ref) {
@@ -163,5 +217,40 @@ class CategoriesScreen extends ConsumerWidget {
       case 'savings': return Icons.savings;
       default: return Icons.label;
     }
+  }
+}
+
+class _CategoryDeleteDialog extends StatefulWidget {
+  const _CategoryDeleteDialog({required this.onDelete});
+  final Future<void> Function() onDelete;
+
+  @override
+  State<_CategoryDeleteDialog> createState() => _CategoryDeleteDialogState();
+}
+
+class _CategoryDeleteDialogState extends State<_CategoryDeleteDialog> {
+  bool _deleting = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(AppLocalizations.of(context)!.dialog_deleteCategoryTitle),
+      content: Text(AppLocalizations.of(context)!.dialog_deleteCategoryConfirm),
+      actions: [
+        TextButton(
+          onPressed: _deleting ? null : () => Navigator.pop(context, false),
+          child: Text(AppLocalizations.of(context)!.btn_cancel),
+        ),
+        FilledButton(
+          onPressed: _deleting ? null : () async {
+            setState(() => _deleting = true);
+            await widget.onDelete();
+          },
+          child: _deleting
+              ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+              : Text(AppLocalizations.of(context)!.btn_delete),
+        ),
+      ],
+    );
   }
 }

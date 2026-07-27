@@ -54,7 +54,7 @@ lib/
 │   ├── app.dart                 # MaterialApp + gate (onboarding → lock → main)
 │   └── router.dart              # go_router + bottom nav shell (5 tabs)
 ├── core/
-│   ├── db/database.dart         # SQLite schema v2, migrations, settings, seed defaults
+│   ├── db/database.dart         # SQLite schema v3, migrations, settings, seed defaults, orphan repair
 │   ├── calculations.dart        # Pure functions: savingsRate, goalProgress, colorFromHex
 │   ├── money.dart               # formatAmount, parseAmountToMinor, ArabicDigitFormatter
 │   ├── theme.dart               # Material3 light/dark with green seed
@@ -133,18 +133,52 @@ Categories (`/categories`) is reached via the Activity screen's category icon.
 ## Conventions
 
 - **Money**: All amounts stored as `int` in minor units (cents). Never `double` for stored/summed amounts.
-- **Refresh**: domain-scoped `invalidate*()` using `ref.invalidate()`.
-- **Enums**: `TransactionType` (income/expense/saving), `GoalStatus` (active/paused/completed/archived).
+- **One source of truth**: Date/month boundaries go through `monthDateRange` only. Aggregation queries (month totals, category breakdowns, trends) live in one shared repository consumed by both Dashboard and Reports — never reimplemented per-feature.
+- **Refresh**: domain-scoped `invalidate*()` using `ref.invalidate()`. Never a single global refresh counter.
+- **Typed enums, not raw ints**: `TransactionType` (income/expense/saving), `GoalStatus` (active/paused/completed/archived), `CategoryType` are enums above the data-layer boundary. Raw int conversion happens only at the SQLite read/write boundary.
+- **Layering**: `presentation/` is widgets and composition only. Any file with no widget in it — calculations, file I/O, business logic — belongs in `data/` or `application/`, never `presentation/`.
 - **Pure functions**: `savingsRate()`, `goalProgress()`, `colorFromHex()` in `lib/core/calculations.dart`.
 - **DB tables**: `categories`, `transactions`, `goals`, `settings` (key-value).
 - **Screen naming**: "Activity" throughout (list screen, add/edit dialogs, delete confirmation, empty state, Semantics labels).
 - **Extracted widgets**: Each large screen delegates to standalone single-responsibility widgets (e.g. `TransactionTile`, `BalanceCard`, `GoalContributeDialog`).
+- **Doc comments**: Public classes, methods, and non-trivial functions encoding a business rule get a `///` doc comment.
+
+## Deletion Policies
+
+| Entity | Delete? | Behavior |
+|--------|---------|----------|
+| **Category** | Only if no transactions reference it | Blocked with SnackBar when linked transactions exist; archive offered instead. Physical delete only when `countTransactions == 0`. |
+| **Goal** | Yes | Atomic delete inside `db.transaction`: all related `goalId` references SET NULL, goal entity removed. Financial ledger (type=2 transactions) is **never** deleted. |
+| **Transaction** | Yes | Standard delete. Balances recalculated via existing aggregation queries. |
+
+### Referential Integrity
+
+- `PRAGMA foreign_keys = ON` enforced after every `openDatabase` call (both app and tests).
+- FK constraints on `transactions.categoryId → categories(id)` and `transactions.goalId → goals(id)` defined in both `_createTables` and `onUpgrade` v1→v2.
+
+### UI Guardrails
+
+All delete dialogs use `StatefulWidget` for double-tap protection (`_deleting` flag). All async operations wrapped in try/catch with SnackBar error feedback. Mounted guards on all `setState`/`ref.invalidate` calls after async gaps.
+
+## Data Integrity & Migration
+
+The database schema is at **version 3**. On upgrade from v2→v3, `_repairOrphans()` runs:
+
+- **Orphaned `categoryId`** (references a deleted category) → relinked to the `Recovered / Unknown` category.
+- **Orphaned `goalId`** (references a deleted goal) → set to `NULL`.
+- Orphaned rows are **never deleted** — the financial ledger is always preserved.
+
+### Recovery Category
+
+A hidden `Recovered / Unknown` category (seed key: `recovered_unknown`) is created automatically during the v3 migration when orphaned transactions exist. It is always archived (`isArchived = 1`) and does not appear in the category picker. Localized names are provided via `seedCategoryDisplayNames` in `seed_categories.dart`.
 
 ## Seed Categories (14 total)
 
 **Expense (type=1):** Groceries, Food & Dining, Transportation, Housing & Rent, Utilities & Bills, Shopping, Health & Fitness, Entertainment, Other Expense
 
 **Income (type=0):** Salary, Freelance / Business, Gifts, Investments / Interest, Other Income
+
+> A 15th hidden category, `Recovered / Unknown`, is created automatically by the v3 migration for orphaned transactions. It is always archived and does not appear in the category picker.
 
 ## Getting Started
 
@@ -160,14 +194,14 @@ flutter test
 flutter test --coverage
 ```
 
-**80 tests** across 7 test files:
-- `test/money_test.dart` — 20 tests (toWesternDigits, ArabicDigitFormatter, parseAmountToMinor, formatAmount)
-- `test/database_test.dart` — 20 tests (monthTotal, totalBalance, categoryBreakdown, monthlyTrend, topExpenses, savingsRate, spendable balance, goal overfunding, pagination, category filtering)
-- `test/invalidation_test.dart` — 9 tests (domain-scoped invalidation regression)
-- `test/calculations_test.dart` — 6 tests (savingsRate, goalProgress, colorFromHex)
-- `test/widget_test.dart` — 3 tests (app launch, RTL render)
-- `test/widget_extracted_test.dart` — 16 tests (render tests for all 13 extracted widgets)
+**93 tests** across 7 test files:
+- `test/database_test.dart` — 30 tests (monthTotal, totalBalance, categoryBreakdown, monthlyTrend, topExpenses, savingsRate, spendable balance, goal overfunding, pagination, category filtering, **delete behavioral invariants** (goal/category/transaction delete preserves balances), **stress tests** (rapid consecutive deletes, interleaved operations), **v3 migration/orphan repair** (relink categoryId, idempotent repair, balance after repair))
+- `test/money_test.dart` — 24 tests (toWesternDigits, ArabicDigitFormatter, parseAmountToMinor, formatAmount)
+- `test/widget_extracted_test.dart` — 16 tests (render tests for all extracted widgets)
+- `test/calculations_test.dart` — 12 tests (savingsRate, goalProgress, colorFromHex)
 - `test/widget_dialogs_test.dart` — 6 tests (GoalContributeDialog, GoalEditDialog, GoalProgressCard, GoalHistoryList behavioral tests)
+- `test/invalidation_test.dart` — 3 tests (domain-scoped invalidation regression)
+- `test/widget_test.dart` — 2 tests (app launch, RTL render)
 
 ## Code Quality
 
@@ -175,18 +209,27 @@ flutter test --coverage
 flutter analyze
 ```
 
-Clean — only pre-existing info-level warnings (3x `use_build_context_synchronously`).
+Clean — only pre-existing info-level warnings (5x `use_build_context_synchronously`, none introduced by deletion audit).
+
+## User-Visible Behavior Changes (Deletion Audit)
+
+- **Category deletion blocked** when linked transactions exist — a SnackBar explains the block and offers to archive the category instead.
+- **Goal deletion** shows a confirmation dialog before proceeding.
+- **All delete dialogs** now display a loading spinner and disable the button during the async operation.
+- **Failed deletions** show an error SnackBar instead of failing silently.
+- **Orphaned data from prior versions** is automatically repaired on first launch after upgrade to v3 (the `Recovered / Unknown` category is created if needed).
 
 ## Project Stats
 
 | Metric | Value |
 |--------|-------|
 | Dart files in `lib/` | 44 |
-| Lines of code in `lib/` | 5,872 |
+| Lines of code in `lib/` | 6,254 |
 | Test files | 7 |
-| Lines of code in `test/` | 1,171 |
-| Total tests | 80 |
+| Lines of code in `test/` | 1,632 |
+| Total tests | 93 |
 | ARB translation keys | 161 |
 | Supported languages | 2 (English, Arabic) |
-| Seed categories | 14 |
+| Seed categories | 14 (+ 1 hidden recovery category) |
 | Features | 8 |
+| Database schema version | 3 |

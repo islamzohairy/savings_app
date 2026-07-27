@@ -147,29 +147,69 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
   }
 
   void _edit(BuildContext context, Map<String, dynamic> t) async {
-    await Navigator.push(context, MaterialPageRoute(builder: (_) => AddEditTransactionScreen(transaction: t)));
+    final fresh = await ref.read(transactionRepoProvider).getById(t['id'] as int);
+    await Navigator.push(context, MaterialPageRoute(
+      builder: (_) => AddEditTransactionScreen(transaction: fresh ?? t)));
+    invalidateTransactions(ref);
+    invalidateDashboard(ref);
     _loadInitial();
   }
 
   void _confirmDelete(BuildContext context, Map<String, dynamic> t) {
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(AppLocalizations.of(context)!.dialog_deleteActivityTitle),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(AppLocalizations.of(context)!.btn_cancel)),
-          FilledButton(
-            onPressed: () async {
-              await ref.read(transactionRepoProvider).delete(t['id'] as int);
-              invalidateTransactions(ref);
-              invalidateDashboard(ref);
-              if (ctx.mounted) Navigator.pop(ctx);
-              _loadInitial();
-            },
-            child: Text(AppLocalizations.of(context)!.btn_delete),
-          ),
-        ],
+      builder: (ctx) => _DeleteDialog(
+        onDelete: () async {
+          try {
+            await ref.read(transactionRepoProvider).delete(t['id'] as int);
+            invalidateTransactions(ref);
+            invalidateDashboard(ref);
+            if (ctx.mounted) Navigator.pop(ctx);
+            if (mounted) _loadInitial();
+          } catch (e) {
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(AppLocalizations.of(context)!.error_generic('$e'))),
+              );
+            }
+          }
+        },
       ),
+    );
+  }
+}
+
+class _DeleteDialog extends StatefulWidget {
+  const _DeleteDialog({required this.onDelete});
+  final Future<void> Function() onDelete;
+
+  @override
+  State<_DeleteDialog> createState() => _DeleteDialogState();
+}
+
+class _DeleteDialogState extends State<_DeleteDialog> {
+  bool _deleting = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(AppLocalizations.of(context)!.dialog_deleteActivityTitle),
+      content: Text(AppLocalizations.of(context)!.dialog_deleteActivityConfirm),
+      actions: [
+        TextButton(
+          onPressed: _deleting ? null : () => Navigator.pop(context),
+          child: Text(AppLocalizations.of(context)!.btn_cancel),
+        ),
+        FilledButton(
+          onPressed: _deleting ? null : () async {
+            setState(() => _deleting = true);
+            await widget.onDelete();
+          },
+          child: _deleting
+              ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+              : Text(AppLocalizations.of(context)!.btn_delete),
+        ),
+      ],
     );
   }
 }

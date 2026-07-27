@@ -524,6 +524,12 @@ abstract class AppLocalizations {
   /// **'Withdraw'**
   String get btn_withdraw;
 
+  /// No description provided for @btn_ok.
+  ///
+  /// In en, this message translates to:
+  /// **'OK'**
+  String get btn_ok;
+
   /// No description provided for @menu_edit.
   ///
   /// In en, this message translates to:
@@ -757,6 +763,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count, plural, =0{Not used in any transactions} one{Used in 1 transaction} two{Used in 2 transactions} few{Used in {count} transactions} many{Used in {count} transactions} other{Used in {count} transactions}}'**
   String categoryInUseWarning(int count);
+
+  /// No description provided for @categoryDeleteBlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'This category is used by {count} {count, plural, one{transaction} other{transactions}} and cannot be deleted. Use Archive instead.'**
+  String categoryDeleteBlocked(int count);
+
+  /// No description provided for @dialog_deleteActivityConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'This action cannot be undone.'**
+  String get dialog_deleteActivityConfirm;
 
   /// No description provided for @categoryType_income.
   ///

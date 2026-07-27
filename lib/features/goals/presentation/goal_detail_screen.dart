@@ -7,6 +7,7 @@ import '../../../core/calculations.dart';
 import '../../../l10n/app_localizations.dart';
 import '../application/goal_provider.dart';
 import '../../dashboard/application/dashboard_provider.dart';
+import '../../transactions/application/transaction_provider.dart';
 import 'goal_history_list.dart';
 import 'goal_contribute_dialog.dart';
 import 'goal_edit_dialog.dart';
@@ -149,34 +150,123 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
   }
 
   void _handleMenu(String action) async {
+    if (_goal == null) return;
     final repo = ref.read(goalRepoProvider);
     final id = widget.goalId;
-      switch (action) {
-      case 'edit': _editGoal(context); return;
-      case 'pause': await repo.update(id, {'status': GoalStatus.paused.index});
-      case 'resume': await repo.update(id, {'status': GoalStatus.active.index});
-      case 'complete': await repo.update(id, {'status': GoalStatus.completed.index});
-      case 'archive': await repo.update(id, {'status': GoalStatus.archived.index});
+    switch (action) {
+      case 'edit':
+        _editGoal(context);
+        break;
+      case 'pause':
+        try {
+          await repo.update(id, {'status': GoalStatus.paused.index});
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(AppLocalizations.of(context)!.error_generic('$e'))),
+            );
+          }
+        }
+        break;
+      case 'resume':
+        try {
+          await repo.update(id, {'status': GoalStatus.active.index});
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(AppLocalizations.of(context)!.error_generic('$e'))),
+            );
+          }
+        }
+        break;
+      case 'complete':
+        try {
+          await repo.update(id, {'status': GoalStatus.completed.index});
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(AppLocalizations.of(context)!.error_generic('$e'))),
+            );
+          }
+        }
+        break;
+      case 'archive':
+        try {
+          await repo.update(id, {'status': GoalStatus.archived.index});
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(AppLocalizations.of(context)!.error_generic('$e'))),
+            );
+          }
+        }
+        break;
       case 'delete':
-        final confirmed = await showDialog<bool>(
+        await showDialog<bool>(
           context: context,
-          builder: (ctx) => AlertDialog(
-            title: Text(AppLocalizations.of(context)!.dialog_deleteGoalTitle),
-            content: Text(AppLocalizations.of(context)!.dialog_deleteGoalConfirm),
-            actions: [
-              TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(AppLocalizations.of(context)!.btn_cancel)),
-              FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text(AppLocalizations.of(context)!.btn_delete)),
-            ],
+          builder: (ctx) => _GoalDeleteDialog(
+            onDelete: () async {
+              try {
+                await repo.delete(id);
+                invalidateTransactions(ref);
+                invalidateGoals(ref);
+                invalidateDashboard(ref);
+                if (ctx.mounted) Navigator.pop(ctx, true);
+                if (mounted) {
+                  Navigator.pop(context);
+                }
+              } catch (e) {
+                if (ctx.mounted) Navigator.pop(ctx, false);
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(AppLocalizations.of(context)!.error_generic('$e'))),
+                  );
+                }
+              }
+            },
           ),
         );
-        if (confirmed != true) return;
-        await repo.delete(id);
-        invalidateGoals(ref);
-        invalidateDashboard(ref);
-        if (mounted) { Navigator.pop(context); return; }
+        break;
     }
-    invalidateGoals(ref);
-    invalidateDashboard(ref);
-    await _load();
+    if (action != 'delete' && action != 'edit') {
+      invalidateGoals(ref);
+      invalidateDashboard(ref);
+      await _load();
+    }
+  }
+}
+
+class _GoalDeleteDialog extends StatefulWidget {
+  const _GoalDeleteDialog({required this.onDelete});
+  final Future<void> Function() onDelete;
+
+  @override
+  State<_GoalDeleteDialog> createState() => _GoalDeleteDialogState();
+}
+
+class _GoalDeleteDialogState extends State<_GoalDeleteDialog> {
+  bool _deleting = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(AppLocalizations.of(context)!.dialog_deleteGoalTitle),
+      content: Text(AppLocalizations.of(context)!.dialog_deleteGoalConfirm),
+      actions: [
+        TextButton(
+          onPressed: _deleting ? null : () => Navigator.pop(context, false),
+          child: Text(AppLocalizations.of(context)!.btn_cancel),
+        ),
+        FilledButton(
+          onPressed: _deleting ? null : () async {
+            setState(() => _deleting = true);
+            await widget.onDelete();
+          },
+          child: _deleting
+              ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+              : Text(AppLocalizations.of(context)!.btn_delete),
+        ),
+      ],
+    );
   }
 }

@@ -240,6 +240,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get btn_withdraw => 'سحب مبلغ';
 
   @override
+  String get btn_ok => 'حسناً';
+
+  @override
   String get menu_edit => 'تعديل';
 
   @override
@@ -367,6 +370,24 @@ class AppLocalizationsAr extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String categoryDeleteBlocked(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'معاملة',
+      many: 'معاملة',
+      few: 'معاملات',
+      two: 'معاملتين',
+      one: 'معاملة',
+      zero: 'معاملات',
+    );
+    return 'هذه الفئة مستخدمة في $count $_temp0 ولا يمكن حذفها. استخدم الأرشفة بدلاً من ذلك.';
+  }
+
+  @override
+  String get dialog_deleteActivityConfirm => 'لا يمكن التراجع عن هذا الإجراء.';
 
   @override
   String get categoryType_income => 'دخل';

@@ -15,9 +15,20 @@ class GoalRepository {
     await db.update('goals', row, where: 'id = ?', whereArgs: [id]);
   }
 
+  /// Deletes a goal and disassociates its financial transactions.
+  ///
+  /// Financial transactions are immutable historical records and must never
+  /// be deleted when a goal is removed. This method sets [goalId] to NULL
+  /// on all related transactions, preserving the full contribution history
+  /// as standalone saving-type records. The goal row itself is then deleted.
+  /// Both operations execute in a single SQLite transaction for atomicity.
   Future<void> delete(int id) async {
     final db = await _db.database;
-    await db.delete('goals', where: 'id = ?', whereArgs: [id]);
+    await db.transaction((txn) async {
+      await txn.update('transactions', {'goalId': null},
+          where: 'goalId = ?', whereArgs: [id]);
+      await txn.delete('goals', where: 'id = ?', whereArgs: [id]);
+    });
   }
 
   Future<List<Map<String, dynamic>>> getAll() async {
