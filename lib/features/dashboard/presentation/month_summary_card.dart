@@ -25,7 +25,7 @@ class MonthSummaryCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                Flexible(
+                Expanded(
                   child: Text(AppLocalizations.of(context)!.label_monthSummary(label), style: Theme.of(context).textTheme.titleMedium, overflow: TextOverflow.ellipsis),
                 ),
                 const SizedBox(width: 8),
