@@ -50,7 +50,7 @@ class GoalsScreen extends ConsumerWidget {
             TextField(
               controller: amountCtrl,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              inputFormatters: const [ArabicDigitFormatter()],
+              inputFormatters: const [MoneyInputFormatter()],
               decoration: InputDecoration(labelText: AppLocalizations.of(context)!.fieldLabel_targetAmountOptional, prefixText: currencyPrefix()),
             ),
           ],
@@ -59,11 +59,24 @@ class GoalsScreen extends ConsumerWidget {
           TextButton(onPressed: () => Navigator.pop(ctx), child: Text(AppLocalizations.of(context)!.btn_cancel)),
           FilledButton(onPressed: () async {
             if (nameCtrl.text.trim().isEmpty) return;
-            final minor = parseAmountToMinor(amountCtrl.text);
+            final raw = amountCtrl.text.trim();
+            int? minor;
+            if (raw.isNotEmpty) {
+              final validation = validateAmount(raw);
+              if (!validation.isValid) {
+                if (ctx.mounted) {
+                  ScaffoldMessenger.of(ctx).showSnackBar(
+                    SnackBar(content: Text(AppLocalizations.of(context)!.error_invalidAmount)),
+                  );
+                }
+                return;
+              }
+              minor = validation.minorUnits;
+            }
             final now = DateTime.now().toIso8601String();
             await ref.read(goalRepoProvider).insert({
               'name': nameCtrl.text.trim(),
-              'targetAmountMinor': minor > 0 ? minor : null,
+              'targetAmountMinor': minor,
               'targetDate': null,
               'iconKey': 'flag',
               'colorHex': '3F51B5',

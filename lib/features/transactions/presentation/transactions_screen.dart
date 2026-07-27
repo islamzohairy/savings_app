@@ -143,11 +143,13 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     await Navigator.push(context, MaterialPageRoute(builder: (_) => const AddEditTransactionScreen()));
     invalidateTransactions(ref);
     invalidateCategories(ref);
+    invalidateDashboard(ref);
     _loadInitial();
   }
 
   void _edit(BuildContext context, Map<String, dynamic> t) async {
     final fresh = await ref.read(transactionRepoProvider).getById(t['id'] as int);
+    if (!mounted) return;
     await Navigator.push(context, MaterialPageRoute(
       builder: (_) => AddEditTransactionScreen(transaction: fresh ?? t)));
     invalidateTransactions(ref);

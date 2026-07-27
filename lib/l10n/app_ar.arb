@@ -93,6 +93,7 @@
     "placeholders": { "error": { "type": "String" } }
   },
   "error_insufficientBalance": "الرصيد غير كافٍ",
+  "error_invalidAmount": "الرجاء إدخال مبلغ صحيح",
 
   "btn_add": "إضافة",
   "btn_update": "تحديث",

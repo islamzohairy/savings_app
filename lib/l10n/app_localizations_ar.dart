@@ -195,6 +195,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get error_insufficientBalance => 'الرصيد غير كافٍ';
 
   @override
+  String get error_invalidAmount => 'الرجاء إدخال مبلغ صحيح';
+
+  @override
   String get btn_add => 'إضافة';
 
   @override

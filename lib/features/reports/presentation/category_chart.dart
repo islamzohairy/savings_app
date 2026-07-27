@@ -47,8 +47,8 @@ class CategoryChart extends StatelessWidget {
               children: [
                 Container(width: 12, height: 12, color: color),
                 const SizedBox(width: 8),
-                Expanded(child: Text(displayCategoryName(d['name'] as String, Localizations.localeOf(context).languageCode))),
-                Text(formatAmount(amount)),
+                Expanded(child: Text(displayCategoryName(d['name'] as String, Localizations.localeOf(context).languageCode), overflow: TextOverflow.ellipsis)),
+                Flexible(child: FittedBox(fit: BoxFit.scaleDown, child: Text(formatAmount(amount)))),
                 const SizedBox(width: 8),
                 Text(AppLocalizations.of(context)!.label_percent(pct.toStringAsFixed(1)), style: Theme.of(context).textTheme.bodySmall),
               ],

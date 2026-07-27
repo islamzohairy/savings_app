@@ -434,6 +434,12 @@ abstract class AppLocalizations {
   /// **'Insufficient balance'**
   String get error_insufficientBalance;
 
+  /// No description provided for @error_invalidAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter a valid amount'**
+  String get error_invalidAmount;
+
   /// No description provided for @btn_add.
   ///
   /// In en, this message translates to:

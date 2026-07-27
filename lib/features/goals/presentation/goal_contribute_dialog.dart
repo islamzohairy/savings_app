@@ -42,14 +42,22 @@ class _GoalContributeDialogState extends ConsumerState<GoalContributeDialog> {
       content: TextField(
         controller: _ctrl,
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
-        inputFormatters: const [ArabicDigitFormatter()],
+        inputFormatters: const [MoneyInputFormatter()],
         decoration: InputDecoration(labelText: AppLocalizations.of(context)!.fieldLabel_amount, prefixText: currencyPrefix()),
       ),
       actions: [
         TextButton(onPressed: () => Navigator.pop(context), child: Text(AppLocalizations.of(context)!.btn_cancel)),
         FilledButton(onPressed: () async {
-          final minor = parseAmountToMinor(_ctrl.text);
-          if (minor <= 0) return;
+          final validation = validateAmount(_ctrl.text);
+          if (!validation.isValid) {
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(AppLocalizations.of(context)!.error_invalidAmount)),
+              );
+            }
+            return;
+          }
+          final minor = validation.minorUnits;
           if (isWithdraw && minor > widget.currentAmount) {
             if (context.mounted) {
               ScaffoldMessenger.of(context).showSnackBar(

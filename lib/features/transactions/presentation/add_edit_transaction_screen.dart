@@ -45,32 +45,6 @@ class _AddEditTransactionScreenState extends ConsumerState<AddEditTransactionScr
     }
   }
 
-  bool _goalIdNormalized = false;
-  bool _categoryIdNormalized = false;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (_isEdit && !_goalIdNormalized && _goalId != null && _type == TransactionType.saving) {
-      final goals = ref.read(goalsProvider).value;
-      if (goals != null) {
-        _goalIdNormalized = true;
-        if (!goals.any((g) => g['id'] as int == _goalId)) {
-          _goalId = null;
-        }
-      }
-    }
-    if (_isEdit && !_categoryIdNormalized && _categoryId != null && _type != TransactionType.saving) {
-      final cats = ref.read(categoriesProvider).value;
-      if (cats != null) {
-        _categoryIdNormalized = true;
-        if (!cats.any((c) => c['id'] as int == _categoryId)) {
-          _categoryId = null;
-        }
-      }
-    }
-  }
-
   @override
   void dispose() {
     _amountCtrl.dispose();
@@ -107,7 +81,7 @@ class _AddEditTransactionScreenState extends ConsumerState<AddEditTransactionScr
           TextField(
             controller: _amountCtrl,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            inputFormatters: [ArabicDigitFormatter()],
+            inputFormatters: const [MoneyInputFormatter()],
             decoration: InputDecoration(labelText: AppLocalizations.of(context)!.fieldLabel_amount, prefixText: currencyPrefix()),
           ),
           const SizedBox(height: 16),
@@ -117,6 +91,9 @@ class _AddEditTransactionScreenState extends ConsumerState<AddEditTransactionScr
               error: (e, _) => Text(AppLocalizations.of(context)!.error_generic('$e')),
               data: (goals) {
                 final active = goals.where((g) => (g['status'] as int) == GoalStatus.active.index).toList();
+                if (_isEdit && _goalId != null && !active.any((g) => g['id'] as int == _goalId)) {
+                  _goalId = null;
+                }
                 return DropdownButtonFormField<int>(
                   initialValue: _goalId,
                   isExpanded: true,
@@ -137,9 +114,12 @@ class _AddEditTransactionScreenState extends ConsumerState<AddEditTransactionScr
                 final active = cats.where((c) {
                   if ((c['isArchived'] as int) == 1) return false;
                   if (_type == TransactionType.saving) return false;
-                                    final catType = TransactionType.values[c['type'] as int];
+                  final catType = TransactionType.values[c['type'] as int];
                   return catType == _type;
                 }).toList();
+                if (_isEdit && _categoryId != null && !active.any((c) => c['id'] as int == _categoryId)) {
+                  _categoryId = null;
+                }
                 final sourceLabel = _type == TransactionType.income ? AppLocalizations.of(context)!.fieldLabel_source : AppLocalizations.of(context)!.fieldLabel_category;
                 return DropdownButtonFormField<int>(
                   initialValue: _categoryId,
@@ -180,12 +160,20 @@ class _AddEditTransactionScreenState extends ConsumerState<AddEditTransactionScr
 
   void _pickDate() async {
     final picked = await showDatePicker(context: context, initialDate: _date, firstDate: DateTime(2020), lastDate: DateTime.now());
-    if (picked != null) setState(() => _date = picked);
+    if (picked != null && mounted) setState(() => _date = picked);
   }
 
   Future<void> _save() async {
-    final minor = parseAmountToMinor(_amountCtrl.text);
-    if (minor <= 0) return;
+    final validation = validateAmount(_amountCtrl.text);
+    if (!validation.isValid) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppLocalizations.of(context)!.error_invalidAmount)),
+        );
+      }
+      return;
+    }
+    final minor = validation.minorUnits;
     setState(() => _isSaving = true);
 
     final row = {

@@ -12,6 +12,7 @@ Future<void> backupDatabase(BuildContext context) async {
     final dir = await getDatabasesPath();
     final file = File(p.join(dir, 'savings.sqlite'));
     if (!await file.exists()) return;
+    if (!context.mounted) return;
     await SharePlus.instance.share(ShareParams(files: [XFile(file.path)], text: AppLocalizations.of(context)!.share_backupLabel));
   } catch (e) {
     // ignore

@@ -32,41 +32,139 @@ void main() {
     });
   });
 
-  group('parseAmountToMinor', () {
-    test('parses simple decimal', () {
-      expect(parseAmountToMinor('12.50'), 1250);
+  group('MoneyInputFormatter', () {
+    const fmt = MoneyInputFormatter();
+    const empty = TextEditingValue(text: '');
+
+    test('converts Arabic digits in real time', () {
+      final result = fmt.formatEditUpdate(empty, const TextEditingValue(text: '١٢٣'));
+      expect(result.text, '123');
     });
 
-    test('parses integer', () {
-      expect(parseAmountToMinor('100'), 10000);
+    test('passes through Western digits unchanged', () {
+      final value = const TextEditingValue(text: '123');
+      final result = fmt.formatEditUpdate(empty, value);
+      expect(result.text, '123');
     });
 
-    test('strips currency symbol', () {
-      expect(parseAmountToMinor('\$25.99'), 2599);
+    test('converts Arabic decimal separator', () {
+      final result = fmt.formatEditUpdate(empty, const TextEditingValue(text: '٥٦٫٧٨'));
+      expect(result.text, '56.78');
     });
 
-    test('returns 0 for empty string', () {
-      expect(parseAmountToMinor(''), 0);
+    test('strips non-digit non-dot characters', () {
+      final result = fmt.formatEditUpdate(empty, const TextEditingValue(text: '\$12.50'));
+      expect(result.text, '12.50');
     });
 
-    test('handles euro symbol', () {
-      expect(parseAmountToMinor('€50.00'), 5000);
+    test('allows single decimal point', () {
+      final result = fmt.formatEditUpdate(empty, const TextEditingValue(text: '12.50'));
+      expect(result.text, '12.50');
     });
 
-    test('rounds correctly', () {
-      expect(parseAmountToMinor('10.999'), 1100);
+    test('keeps only first decimal point, clamps fraction on paste', () {
+      final result = fmt.formatEditUpdate(empty, const TextEditingValue(text: '12.34.56'));
+      expect(result.text, '12.34');
+    });
+
+    test('enforces max 2 decimal places', () {
+      final result = fmt.formatEditUpdate(empty, const TextEditingValue(text: '12.567'));
+      expect(result.text, '12.56');
+    });
+
+    test('enforces max 12 integer digits', () {
+      final result = fmt.formatEditUpdate(empty, const TextEditingValue(text: '1234567890123'));
+      expect(result.text, '123456789012');
+    });
+
+    test('allows trailing decimal point', () {
+      final result = fmt.formatEditUpdate(empty, const TextEditingValue(text: '12.'));
+      expect(result.text, '12.');
+    });
+
+    test('handles empty input', () {
+      final result = fmt.formatEditUpdate(empty, const TextEditingValue(text: ''));
+      expect(result.text, '');
+    });
+  });
+
+  group('validateAmount', () {
+    test('validates simple decimal', () {
+      final result = validateAmount('12.50');
+      expect(result.isValid, true);
+      expect(result.minorUnits, 1250);
+    });
+
+    test('validates integer', () {
+      final result = validateAmount('100');
+      expect(result.isValid, true);
+      expect(result.minorUnits, 10000);
+    });
+
+    test('rejects empty string', () {
+      final result = validateAmount('');
+      expect(result.isValid, false);
+      expect(result.error, 'amount_empty');
+    });
+
+    test('rejects zero', () {
+      final result = validateAmount('0');
+      expect(result.isValid, false);
+      expect(result.error, 'amount_zero');
+    });
+
+    test('negative sign is stripped by validation (formatter prevents it)', () {
+      final result = validateAmount('-5');
+      expect(result.isValid, true);
+      expect(result.minorUnits, 500);
+    });
+
+    test('rejects trailing decimal', () {
+      final result = validateAmount('12.');
+      expect(result.isValid, false);
+      expect(result.error, 'amount_incomplete');
+    });
+
+    test('rejects amount exceeding max', () {
+      final result = validateAmount('1000000000000.00');
+      expect(result.isValid, false);
+      expect(result.error, 'amount_too_large');
+    });
+
+    test('accepts max value at boundary', () {
+      final result = validateAmount('99999999999.99');
+      expect(result.isValid, true);
+      expect(result.minorUnits, 9999999999999);
     });
 
     test('parses Eastern Arabic digits', () {
-      expect(parseAmountToMinor('١٢٣٤'), 123400);
+      final result = validateAmount('١٢٣٤');
+      expect(result.isValid, true);
+      expect(result.minorUnits, 123400);
     });
 
     test('parses Arabic decimal', () {
-      expect(parseAmountToMinor('٥٦٫٧٨'), 5678);
+      final result = validateAmount('٥٦٫٧٨');
+      expect(result.isValid, true);
+      expect(result.minorUnits, 5678);
     });
 
-    test('parses mixed Arabic and currency symbol', () {
-      expect(parseAmountToMinor('\$١٢٣.٤٥'), 12345);
+    test('strips currency symbols', () {
+      final result = validateAmount('\$25.99');
+      expect(result.isValid, true);
+      expect(result.minorUnits, 2599);
+    });
+
+    test('rounds correctly', () {
+      final result = validateAmount('10.999');
+      expect(result.isValid, true);
+      expect(result.minorUnits, 1100);
+    });
+
+    test('handles mixed Arabic and currency', () {
+      final result = validateAmount('\$١٢٣.٤٥');
+      expect(result.isValid, true);
+      expect(result.minorUnits, 12345);
     });
   });
 

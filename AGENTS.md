@@ -23,7 +23,7 @@ Feature-first, three layers per feature: `data/` (repo), `application/` (provide
 | `lib/app/router.dart` | go_router + bottom nav shell (5 tabs) |
 | `lib/core/db/database.dart` | SQLite schema v3, migrations, settings helpers, seed defaults (14 categories), orphan repair |
 | `lib/core/calculations.dart` | Pure functions: `savingsRate()`, `goalProgress()`, `colorFromHex()` |
-| `lib/core/money.dart` | `formatAmount(int minor)`, `parseAmountToMinor(String)`, currency symbols |
+| `lib/core/money.dart` | `MoneyInputFormatter` (monetary input), `validateAmount()`, `ArabicDigitFormatter` (PIN-only), `formatAmount()`, currency symbols |
 | `lib/core/theme.dart` | Material3 light/dark with green seed |
 | `lib/core/settings_provider.dart` | Riverpod Notifier for settings key-value |
 | `lib/core/date_utils.dart` | Billing cycle math (`monthDateRange`, prev/next) |
@@ -66,6 +66,7 @@ Categories (`/categories`) is not in the nav — reached via the Activity screen
 ### Established rules — do not relitigate or regress
 
 - **Money:** always `int` in minor units. Never `double` anywhere an amount is stored, summed, or passed between layers.
+- **Monetary input:** always use `MoneyInputFormatter` (limits to 2 decimal places, max 12 integer digits, strips non-numeric). `ArabicDigitFormatter` only for PIN fields. Save-time validation via `validateAmount()` with SnackBar feedback. Optional fields (goal target) check `isNotEmpty` before validating.
 - **One source of truth for cross-cutting calculations:** date/month boundaries go through `monthDateRange` only; aggregation queries (month totals, category breakdowns, trends) live in one shared repository consumed by both Dashboard and Reports — never reimplemented per-feature.
 - **Reactivity:** domain-scoped invalidation via `ref.invalidate()` on the specific providers a write affects. Never a single global refresh counter that everything depends on.
 - **Typed enums, not raw ints:** `TransactionType`, `GoalStatus`, `CategoryType` are enums above the data-layer boundary. Raw int conversion happens only at the SQLite read/write boundary, nowhere else.
@@ -169,6 +170,7 @@ All delete dialogs use `StatefulWidget` for double-tap protection (`_deleting` f
 - [x] Screen decomposition: extracted 13 standalone widgets from 5 large screens (reports, dashboard, goal_detail, transactions, settings)
 - [x] Decomposition cleanup: moved backup_restore to data layer, added 22 widget tests (80 total)
 - [x] Delete audit: UI guardrails (mounted checks, double-tap, loading, error handling), goal atomic delete, v3 orphan repair, 18 new tests (30 total in database_test.dart)
+- [x] Stabilization: MoneyInputFormatter + validateAmount (38 tests), filtered-list normalization, overflow fixes, mounted checks (115 total tests, 3 analyzer infos)
 
 ## Known Issues
 1. Spec called for Drift; implementation uses raw sqflite (deviation accepted)

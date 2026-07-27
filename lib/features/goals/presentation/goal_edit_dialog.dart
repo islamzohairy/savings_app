@@ -29,7 +29,7 @@ class GoalEditDialog extends ConsumerWidget {
           TextField(
             controller: targetCtrl,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            inputFormatters: const [ArabicDigitFormatter()],
+            inputFormatters: const [MoneyInputFormatter()],
             decoration: InputDecoration(labelText: AppLocalizations.of(context)!.fieldLabel_targetAmount, prefixText: currencyPrefix()),
           ),
         ],
@@ -39,10 +39,23 @@ class GoalEditDialog extends ConsumerWidget {
         FilledButton(onPressed: () async {
           final name = nameCtrl.text.trim();
           if (name.isEmpty) return;
-          final targetMinor = parseAmountToMinor(targetCtrl.text);
+          final raw = targetCtrl.text.trim();
+          int? targetMinor;
+          if (raw.isNotEmpty) {
+            final validation = validateAmount(raw);
+            if (!validation.isValid) {
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(AppLocalizations.of(context)!.error_invalidAmount)),
+                );
+              }
+              return;
+            }
+            targetMinor = validation.minorUnits;
+          }
           final updates = <String, dynamic>{
             'name': name,
-            'targetAmountMinor': targetMinor > 0 ? targetMinor : null,
+            'targetAmountMinor': targetMinor,
           };
           await ref.read(goalRepoProvider).update(goalId, updates);
           invalidateGoals(ref);

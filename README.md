@@ -56,7 +56,7 @@ lib/
 ├── core/
 │   ├── db/database.dart         # SQLite schema v3, migrations, settings, seed defaults, orphan repair
 │   ├── calculations.dart        # Pure functions: savingsRate, goalProgress, colorFromHex
-│   ├── money.dart               # formatAmount, parseAmountToMinor, ArabicDigitFormatter
+│   ├── money.dart               # MoneyInputFormatter, validateAmount, ArabicDigitFormatter (PIN-only)
 │   ├── theme.dart               # Material3 light/dark with green seed
 │   ├── seed_categories.dart     # Category display name lookup (EN + AR)
 │   ├── settings_provider.dart   # Riverpod Notifier for settings key-value
@@ -133,6 +133,7 @@ Categories (`/categories`) is reached via the Activity screen's category icon.
 ## Conventions
 
 - **Money**: All amounts stored as `int` in minor units (cents). Never `double` for stored/summed amounts.
+- **Monetary input**: Always use `MoneyInputFormatter` (limits to 2 decimal places, max 12 integer digits, strips non-numeric). `ArabicDigitFormatter` only for PIN fields. Save-time validation via `validateAmount()` with SnackBar feedback. Optional fields (goal target) check `isNotEmpty` before validating.
 - **One source of truth**: Date/month boundaries go through `monthDateRange` only. Aggregation queries (month totals, category breakdowns, trends) live in one shared repository consumed by both Dashboard and Reports — never reimplemented per-feature.
 - **Refresh**: domain-scoped `invalidate*()` using `ref.invalidate()`. Never a single global refresh counter.
 - **Typed enums, not raw ints**: `TransactionType` (income/expense/saving), `GoalStatus` (active/paused/completed/archived), `CategoryType` are enums above the data-layer boundary. Raw int conversion happens only at the SQLite read/write boundary.
@@ -194,9 +195,9 @@ flutter test
 flutter test --coverage
 ```
 
-**93 tests** across 7 test files:
-- `test/database_test.dart` — 30 tests (monthTotal, totalBalance, categoryBreakdown, monthlyTrend, topExpenses, savingsRate, spendable balance, goal overfunding, pagination, category filtering, **delete behavioral invariants** (goal/category/transaction delete preserves balances), **stress tests** (rapid consecutive deletes, interleaved operations), **v3 migration/orphan repair** (relink categoryId, idempotent repair, balance after repair))
-- `test/money_test.dart` — 24 tests (toWesternDigits, ArabicDigitFormatter, parseAmountToMinor, formatAmount)
+**115 tests** across 7 test files (2 pre-existing shader failures excluded):
+- `test/database_test.dart` — 41 tests (monthTotal, totalBalance, categoryBreakdown, monthlyTrend, topExpenses, savingsRate, spendable balance, goal overfunding, pagination, category filtering, **delete behavioral invariants** (goal/category/transaction delete preserves balances), **stress tests** (rapid consecutive deletes, interleaved operations), **v3 migration/orphan repair** (relink categoryId, idempotent repair, balance after repair), **goal status transitions** (active→paused→completed, active→archived, contribute when paused, withdraw from completed))
+- `test/money_test.dart` — 38 tests (toWesternDigits, MoneyInputFormatter, validateAmount, ArabicDigitFormatter, formatAmount)
 - `test/widget_extracted_test.dart` — 16 tests (render tests for all extracted widgets)
 - `test/calculations_test.dart` — 12 tests (savingsRate, goalProgress, colorFromHex)
 - `test/widget_dialogs_test.dart` — 6 tests (GoalContributeDialog, GoalEditDialog, GoalProgressCard, GoalHistoryList behavioral tests)
@@ -209,7 +210,7 @@ flutter test --coverage
 flutter analyze
 ```
 
-Clean — only pre-existing info-level warnings (5x `use_build_context_synchronously`, none introduced by deletion audit).
+Clean — 3 info-level warnings (all analyzer false positives with mounted checks already present). 2 pre-existing test failures from `ink_sparkle.frag` shader incompatibility in the test environment.
 
 ## User-Visible Behavior Changes (Deletion Audit)
 
@@ -227,7 +228,7 @@ Clean — only pre-existing info-level warnings (5x `use_build_context_synchrono
 | Lines of code in `lib/` | 6,254 |
 | Test files | 7 |
 | Lines of code in `test/` | 1,632 |
-| Total tests | 93 |
+| Total tests | 115 |
 | ARB translation keys | 161 |
 | Supported languages | 2 (English, Arabic) |
 | Seed categories | 14 (+ 1 hidden recovery category) |

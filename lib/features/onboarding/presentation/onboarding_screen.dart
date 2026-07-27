@@ -154,7 +154,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         TextField(
           controller: _balanceCtrl,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          inputFormatters: const [ArabicDigitFormatter()],
+          inputFormatters: const [MoneyInputFormatter()],
           decoration: InputDecoration(labelText: AppLocalizations.of(context)!.fieldLabel_currentBalance, prefixText: '${symbolFor(_currency)} '),
         ),
         const Spacer(),
@@ -182,7 +182,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         TextField(
           controller: _goalAmountCtrl,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          inputFormatters: const [ArabicDigitFormatter()],
+          inputFormatters: const [MoneyInputFormatter()],
           decoration: InputDecoration(labelText: AppLocalizations.of(context)!.fieldLabel_targetAmount, prefixText: '${symbolFor(_currency)} '),
         ),
         const Spacer(),
@@ -249,13 +249,13 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     await ref.read(settingsProvider.notifier).set('currencyCode', _currency);
     if (!mounted) return;
 
-    final balanceMinor = parseAmountToMinor(_balanceCtrl.text);
-    if (balanceMinor > 0) {
+    final balanceValidation = validateAmount(_balanceCtrl.text);
+    if (balanceValidation.isValid && balanceValidation.minorUnits > 0) {
       final now = DateTime.now().toIso8601String();
       final txnRepo = ref.read(transactionRepoProvider);
       await txnRepo.insert({
         'type': TransactionType.income.index,
-        'amountMinor': balanceMinor,
+        'amountMinor': balanceValidation.minorUnits,
         'date': now,
         'note': AppLocalizations.of(context)!.note_startingBalance,
         'createdAt': now,
@@ -264,11 +264,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     }
 
     if (_goalNameCtrl.text.trim().isNotEmpty) {
-      final goalMinor = parseAmountToMinor(_goalAmountCtrl.text);
+      final goalValidation = validateAmount(_goalAmountCtrl.text);
       final now = DateTime.now().toIso8601String();
       await ref.read(goalRepoProvider).insert({
         'name': _goalNameCtrl.text.trim(),
-        'targetAmountMinor': goalMinor > 0 ? goalMinor : null,
+        'targetAmountMinor': goalValidation.isValid && goalValidation.minorUnits > 0 ? goalValidation.minorUnits : null,
         'iconKey': 'flag',
         'colorHex': '3F51B5',
         'status': GoalStatus.active.index,

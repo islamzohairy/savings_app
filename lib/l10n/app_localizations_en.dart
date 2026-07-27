@@ -195,6 +195,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get error_insufficientBalance => 'Insufficient balance';
 
   @override
+  String get error_invalidAmount => 'Please enter a valid amount';
+
+  @override
   String get btn_add => 'Add';
 
   @override
