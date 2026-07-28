@@ -209,6 +209,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
         onDelete: () async {
           try {
             await ref.read(transactionRepoProvider).delete(t['id'] as int);
+            if (!mounted) return;
             invalidateTransactions(ref);
             invalidateGoals(ref);
             invalidateDashboard(ref);

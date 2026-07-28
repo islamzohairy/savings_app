@@ -23,7 +23,7 @@ Offline-only personal savings tracker built with Flutter. No network, no cloud �
 
 ### Localization
 - Full English + Arabic support with RTL layout
-- 167 translation keys across both languages
+- 169 translation keys across both languages
 - Arabic numeral input handling (Eastern Arabic digits → Western digits)
 - Localized category display names
 - Localized percentage formatting
@@ -62,8 +62,8 @@ lib/
 │   ├── settings_provider.dart   # Riverpod Notifier for settings key-value
 │   └── date_utils.dart          # Billing cycle math
 ├── l10n/
-│   ├── app_en.arb               # English translations (167 keys)
-│   └── app_ar.arb               # Arabic translations (167 keys)
+│   ├── app_en.arb               # English translations (169 keys)
+│   └── app_ar.arb               # Arabic translations (169 keys)
 └── features/
     ├── dashboard/
     │   ├── application/
@@ -248,7 +248,7 @@ Clean — 0 analyzer issues.
 | Test files | 7 |
 | Lines of code in `test/` | 2,841 |
 | Total tests | 189 |
-| ARB translation keys | 167 |
+| ARB translation keys | 169 |
 | Supported languages | 2 (English, Arabic) |
 | Seed categories | 14 (+ 1 hidden recovery category) |
 | Features | 8 |

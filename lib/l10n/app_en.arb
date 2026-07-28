@@ -94,6 +94,8 @@
   },
   "error_insufficientBalance": "Insufficient balance",
   "error_invalidAmount": "Please enter a valid amount",
+  "error_selectGoal": "Please select a goal",
+  "error_selectCategory": "Please select a category",
 
   "btn_add": "Add",
   "btn_update": "Update",

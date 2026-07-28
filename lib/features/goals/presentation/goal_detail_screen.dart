@@ -300,6 +300,7 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
         break;
     }
     if (action != 'delete' && action != 'edit') {
+      if (!mounted) return;
       invalidateGoals(ref);
       invalidateDashboard(ref);
       await _load();

@@ -123,7 +123,7 @@ class CategoriesScreen extends ConsumerWidget {
             onDelete: () async {
               try {
                 await repo.delete(cat['id'] as int);
-                invalidateCategories(ref);
+                if (context.mounted) invalidateCategories(ref);
                 if (ctx.mounted) Navigator.pop(ctx);
               } catch (e) {
                 if (context.mounted) {
@@ -137,6 +137,7 @@ class CategoriesScreen extends ConsumerWidget {
         );
         break;
     }
+    if (!context.mounted) return;
     invalidateCategories(ref);
   }
 
@@ -144,6 +145,7 @@ class CategoriesScreen extends ConsumerWidget {
     final repo = ref.read(categoryRepoProvider);
     try {
       await repo.archive(cat['id'] as int);
+      if (!context.mounted) return;
       invalidateCategories(ref);
     } catch (e) {
       if (context.mounted) {
@@ -164,7 +166,7 @@ class CategoriesScreen extends ConsumerWidget {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TextField(controller: nameCtrl, decoration: InputDecoration(labelText: AppLocalizations.of(context)!.fieldLabel_name)),
+            TextField(controller: nameCtrl, maxLength: 40, decoration: InputDecoration(labelText: AppLocalizations.of(context)!.fieldLabel_name)),
             const SizedBox(height: 8),
             DropdownButtonFormField<TransactionType>(
               initialValue: type,
@@ -209,7 +211,7 @@ class CategoriesScreen extends ConsumerWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(AppLocalizations.of(context)!.dialog_editCategoryTitle),
-        content: TextField(controller: nameCtrl, decoration: InputDecoration(labelText: AppLocalizations.of(context)!.fieldLabel_name)),
+        content: TextField(controller: nameCtrl, maxLength: 40, decoration: InputDecoration(labelText: AppLocalizations.of(context)!.fieldLabel_name)),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: Text(AppLocalizations.of(context)!.btn_cancel)),
           FilledButton(onPressed: () async {

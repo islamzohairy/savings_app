@@ -24,7 +24,7 @@ class GoalEditDialog extends ConsumerWidget {
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          TextField(controller: nameCtrl, decoration: InputDecoration(labelText: AppLocalizations.of(context)!.fieldLabel_name)),
+          TextField(controller: nameCtrl, maxLength: 50, decoration: InputDecoration(labelText: AppLocalizations.of(context)!.fieldLabel_name)),
           const SizedBox(height: 12),
           TextField(
             controller: targetCtrl,
@@ -59,6 +59,7 @@ class GoalEditDialog extends ConsumerWidget {
           };
           try {
             await ref.read(goalRepoProvider).update(goalId, updates);
+            if (!context.mounted) return;
             invalidateGoals(ref);
             invalidateDashboard(ref);
             onComplete();

@@ -177,7 +177,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     child: Column(
       children: [
         const SizedBox(height: 32),
-        TextField(controller: _goalNameCtrl, decoration: InputDecoration(labelText: AppLocalizations.of(context)!.fieldLabel_goalName)),
+        TextField(controller: _goalNameCtrl, maxLength: 50, decoration: InputDecoration(labelText: AppLocalizations.of(context)!.fieldLabel_goalName)),
         const SizedBox(height: 16),
         TextField(
           controller: _goalAmountCtrl,

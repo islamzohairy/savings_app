@@ -75,6 +75,7 @@ class _GoalContributeDialogState extends ConsumerState<GoalContributeDialog> {
             } else {
               await repo.contribute(widget.goalId, minor);
             }
+            if (!mounted) return;
             invalidateGoals(ref);
             invalidateDashboard(ref);
             invalidateTransactions(ref);

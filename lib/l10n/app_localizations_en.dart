@@ -198,6 +198,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get error_invalidAmount => 'Please enter a valid amount';
 
   @override
+  String get error_selectGoal => 'Please select a goal';
+
+  @override
+  String get error_selectCategory => 'Please select a category';
+
+  @override
   String get btn_add => 'Add';
 
   @override

@@ -440,6 +440,18 @@ abstract class AppLocalizations {
   /// **'Please enter a valid amount'**
   String get error_invalidAmount;
 
+  /// No description provided for @error_selectGoal.
+  ///
+  /// In en, this message translates to:
+  /// **'Please select a goal'**
+  String get error_selectGoal;
+
+  /// No description provided for @error_selectCategory.
+  ///
+  /// In en, this message translates to:
+  /// **'Please select a category'**
+  String get error_selectCategory;
+
   /// No description provided for @btn_add.
   ///
   /// In en, this message translates to:

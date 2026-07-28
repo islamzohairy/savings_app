@@ -180,6 +180,24 @@ class _AddEditTransactionScreenState extends ConsumerState<AddEditTransactionScr
       }
       return;
     }
+
+    if (_type == TransactionType.saving && _goalId == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppLocalizations.of(context)!.error_selectGoal)),
+        );
+      }
+      return;
+    }
+    if (_type != TransactionType.saving && _categoryId == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppLocalizations.of(context)!.error_selectCategory)),
+        );
+      }
+      return;
+    }
+
     final minor = validation.minorUnits;
     setState(() => _isSaving = true);
 

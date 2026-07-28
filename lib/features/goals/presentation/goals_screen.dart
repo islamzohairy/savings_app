@@ -73,7 +73,7 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TextField(controller: nameCtrl, decoration: InputDecoration(labelText: AppLocalizations.of(context)!.fieldLabel_name)),
+            TextField(controller: nameCtrl, maxLength: 50, decoration: InputDecoration(labelText: AppLocalizations.of(context)!.fieldLabel_name)),
             const SizedBox(height: 8),
             TextField(
               controller: amountCtrl,
@@ -102,7 +102,7 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
               minor = validation.minorUnits;
             }
             final now = DateTime.now().toIso8601String();
-            try {
+              try {
               await ref.read(goalRepoProvider).insert({
                 'name': nameCtrl.text.trim(),
                 'targetAmountMinor': minor,
@@ -113,6 +113,7 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
                 'sortOrder': 99,
                 'createdAt': now,
               });
+              if (!mounted) return;
               invalidateGoals(ref);
               invalidateDashboard(ref);
               if (ctx.mounted) Navigator.pop(ctx);

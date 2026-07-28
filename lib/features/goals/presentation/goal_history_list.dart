@@ -159,8 +159,9 @@ class _GoalHistoryListState extends ConsumerState<GoalHistoryList> {
         context: context,
         builder: (ctx) => _HistoryDeleteDialog(
           onDelete: () async {
-            try {
+              try {
               await ref.read(transactionRepoProvider).delete(t['id'] as int);
+              if (!mounted) return;
               invalidateTransactions(ref);
               invalidateDashboard(ref);
               invalidateGoals(ref);
@@ -186,6 +187,7 @@ class _GoalHistoryListState extends ConsumerState<GoalHistoryList> {
         await Navigator.push(context, MaterialPageRoute(
           builder: (_) => AddEditTransactionScreen(transaction: fresh ?? t),
         ));
+        if (!mounted) return;
         invalidateTransactions(ref);
         invalidateGoals(ref);
         invalidateDashboard(ref);

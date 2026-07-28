@@ -198,6 +198,12 @@ class AppLocalizationsAr extends AppLocalizations {
   String get error_invalidAmount => 'الرجاء إدخال مبلغ صحيح';
 
   @override
+  String get error_selectGoal => 'الرجاء اختيار هدف';
+
+  @override
+  String get error_selectCategory => 'الرجاء اختيار فئة';
+
+  @override
   String get btn_add => 'إضافة';
 
   @override
