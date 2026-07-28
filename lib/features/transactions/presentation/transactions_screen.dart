@@ -183,6 +183,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
 
   void _add(BuildContext context) async {
     await Navigator.push(context, MaterialPageRoute(builder: (_) => const AddEditTransactionScreen()));
+    if (!mounted) return;
     invalidateTransactions(ref);
     invalidateCategories(ref);
     invalidateDashboard(ref);
@@ -194,6 +195,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     if (!mounted) return;
     await Navigator.push(this.context, MaterialPageRoute(
       builder: (_) => AddEditTransactionScreen(transaction: fresh ?? t)));
+    if (!mounted) return;
     invalidateTransactions(ref);
     invalidateGoals(ref);
     invalidateDashboard(ref);

@@ -167,7 +167,7 @@ All delete dialogs use `StatefulWidget` for double-tap protection (`_deleting` f
 - [x] Phases 1-11: scaffold, data, features, onboarding, reports, settings, app lock
 - [x] Simplification pass: keyset pagination, responsive UI, month start removed
 - [x] Naming/seed pass: Activity rename, type-filtered category picker, 14-category seed
-- [x] Localization: EN + AR, 161 keys, RTL, Arabic numeral input, language picker
+- [x] Localization: EN + AR, 167 keys, RTL, Arabic numeral input, language picker
 - [x] Polish: debug banner removed, FAB padding, goal delete/withdraw confirmations
 - [x] Architecture review: separation of concerns, domain-scoped invalidation, typed enums, ValueKey on list items, mounted guards
 - [x] Screen decomposition: extracted 13 standalone widgets from 5 large screens (reports, dashboard, goal_detail, transactions, settings)
@@ -177,6 +177,7 @@ All delete dialogs use `StatefulWidget` for double-tap protection (`_deleting` f
 - [x] Stabilization pass 2: error handling (try/catch + error UI/retry on 5 screens), archive lifecycle fix, formatCompactAmount (K/M/B for narrow UI), btn_retry ARB key, 29 new tests (boundary stress, financial invariants, archive lifecycle, pagination, compact formatter) — 144 total, 3 analyzer infos
 - [x] QA hardening: 19 tasks across 7 phases — critical error handling (app init, route parsing, financial atomicity), high error handling (goal edit, onboarding, history, progress card, app lock), medium error handling (categories, settings, backup, dropdown safety), UI overflow, 9 new tests — 158 total, 0 analyzer issues (2 pre-existing shader failures)
 - [x] Production-readiness audit: 7-phase audit (workflow crashes, extreme data, state management, pagination, financial invariants, test coverage, docs) — mounted guard fix in goal history, invalidation completeness fix, retry/error UI on goals + dashboard, 23 new database tests — 181 total, 0 analyzer issues
+- [x] Release candidate audit: 3 mounted guard fixes (app_lock, transactions, reports), 8 new database tests (deterministic workflow, 500-op random stress, extreme data, goal delete invariant) — 189 total, 0 analyzer issues, verified doc counts
 
 ## Known Issues
 1. Spec called for Drift; implementation uses raw sqflite (deviation accepted)

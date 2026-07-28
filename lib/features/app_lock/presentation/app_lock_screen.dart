@@ -152,6 +152,7 @@ class _AppLockScreenState extends State<AppLockScreen> {
     try {
       if (_isSetup) {
         final stored = await _storage.read(key: 'app_lock_pin');
+        if (!mounted) return;
         if (pin == stored) {
           widget.onUnlocked?.call();
         } else {
@@ -162,6 +163,7 @@ class _AppLockScreenState extends State<AppLockScreen> {
         }
       } else {
         await _storage.write(key: 'app_lock_pin', value: pin);
+        if (!mounted) return;
         setState(() {
           _isSetup = true;
           _enteredPin = '';
@@ -169,6 +171,7 @@ class _AppLockScreenState extends State<AppLockScreen> {
         widget.onUnlocked?.call();
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = AppLocalizations.of(context)!.error_generic('$e');
         _enteredPin = '';

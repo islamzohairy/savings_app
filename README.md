@@ -23,7 +23,7 @@ Offline-only personal savings tracker built with Flutter. No network, no cloud �
 
 ### Localization
 - Full English + Arabic support with RTL layout
-- 161 translation keys across both languages
+- 167 translation keys across both languages
 - Arabic numeral input handling (Eastern Arabic digits → Western digits)
 - Localized category display names
 - Localized percentage formatting
@@ -62,8 +62,8 @@ lib/
 │   ├── settings_provider.dart   # Riverpod Notifier for settings key-value
 │   └── date_utils.dart          # Billing cycle math
 ├── l10n/
-│   ├── app_en.arb               # English translations (161 keys)
-│   └── app_ar.arb               # Arabic translations (161 keys)
+│   ├── app_en.arb               # English translations (167 keys)
+│   └── app_ar.arb               # Arabic translations (167 keys)
 └── features/
     ├── dashboard/
     │   ├── application/
@@ -196,8 +196,8 @@ flutter test
 flutter test --coverage
 ```
 
-**181 tests** across 7 test files (2 pre-existing shader failures excluded):
-- `test/database_test.dart` — 88 tests (monthTotal, totalBalance, categoryBreakdown, monthlyTrend, topExpenses, savingsRate, spendable balance, goal overfunding, pagination, category filtering, **delete behavioral invariants** (goal/category/transaction delete preserves balances), **stress tests** (rapid consecutive deletes, interleaved operations, orphan repair idempotency), **v3 migration/orphan repair** (relink categoryId, idempotent repair, balance after repair), **goal status transitions** (active→paused→completed, active→archived, contribute when paused, withdraw from completed), **boundary stress** (max minor units, 50 rapid inserts, 30 categories, zero-target goal), **archive lifecycle** (archive preserves transactions, FK blocks delete with transactions, archive toggle), **financial invariants** (spendable + goals = total, savingsRate, goalProgress, categoryBreakdown totals, withdraw preserves balance, timestamps preserved), **amount validation** (zero/negative rejection), **atomicity** (contribute/withdraw atomic transactions, auto-complete/revert on target change), **projectedCompletion** (null on no data, null on zero, now when reached, future when saving), **settings CRUD** (round-trip set/get/delete/missing), **cycle boundary math** (previousCycleStart, nextCycleStart edge cases), **topExpensesPaginated** (pagination, limit, empty), **savingsInRange** (income minus expenses over range), **totalByType** (income/expense/saving totals))
+**189 tests** across 7 test files:
+- `test/database_test.dart` — 96 tests (monthTotal, totalBalance, categoryBreakdown, monthlyTrend, topExpenses, savingsRate, spendable balance, goal overfunding, pagination, category filtering, delete behavioral invariants, stress tests, migration v3 orphan repair, goal status transitions, boundary stress, archive lifecycle, financial invariants, topExpensesPaginated, savingsInRange, totalByType, settings CRUD, cycle boundary math, **deterministic financial workflow** (7-step sequence with explicit per-step invariant checks), **randomized stress test** (500 operations with fixed seed verifying spendable+goals=total after every mutation), **extreme data** (max minor units, 500-char category/goal names, 1000-char notes, 100 rapid contribute/withdraw cycles), **goal delete invariant** (financial ledger preserved, goalId nullified, balances unchanged))
 - `test/money_test.dart` — 49 tests (toWesternDigits, MoneyInputFormatter, validateAmount, ArabicDigitFormatter, formatAmount, formatCompactAmount)
 - `test/widget_extracted_test.dart` — 16 tests (render tests for all extracted widgets)
 - `test/calculations_test.dart` — 17 tests (savingsRate, goalProgress, colorFromHex — valid/invalid/edge)
@@ -211,7 +211,7 @@ flutter test --coverage
 flutter analyze
 ```
 
-Clean — 0 analyzer issues. 2 pre-existing test failures from `ink_sparkle.frag` shader incompatibility in the test environment.
+Clean — 0 analyzer issues.
 
 ## User-Visible Behavior Changes (Deletion Audit + Stabilization)
 
@@ -244,11 +244,11 @@ Clean — 0 analyzer issues. 2 pre-existing test failures from `ink_sparkle.frag
 | Metric | Value |
 |--------|-------|
 | Dart files in `lib/` | 44 |
-| Lines of code in `lib/` | 6,254 |
+| Lines of code in `lib/` | 6,959 |
 | Test files | 7 |
-| Lines of code in `test/` | 1,750 |
-| Total tests | 181 |
-| ARB translation keys | 162 |
+| Lines of code in `test/` | 2,841 |
+| Total tests | 189 |
+| ARB translation keys | 167 |
 | Supported languages | 2 (English, Arabic) |
 | Seed categories | 14 (+ 1 hidden recovery category) |
 | Features | 8 |

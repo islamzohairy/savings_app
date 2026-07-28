@@ -176,6 +176,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                         : TextButton(
                             onPressed: () async {
                               await _loadMoreTopExpenses();
+                              if (!mounted) return;
                               setState(() {});
                             },
                             child: Text(AppLocalizations.of(context)!.btn_loadMore),

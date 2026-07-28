@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:savings_app/core/date_utils.dart';
@@ -1681,6 +1683,219 @@ void main() {
       await insertTxn(type: 1, amountMinor: 2000, date: DateTime(2025, 7, 20));
       await insertTxn(type: 0, amountMinor: 3000, date: DateTime(2025, 7, 15));
       expect(await repo.topExpensesCount(start, end), 2);
+    });
+  });
+
+  group('deterministic financial workflow', () {
+    test('step-by-step invariant verification starting from zero', () async {
+      final now = DateTime(2025, 7, 1, 12, 0, 0);
+
+      // Step 1: income +100000
+      await insertTxn(type: 0, amountMinor: 100000, date: now);
+      expect(await repo.totalBalance(), 100000);
+      expect(await repo.spendableBalance(), 100000);
+      expect(await repo.totalGoalBalances(), 0);
+
+      // Step 2: expense -20000
+      await insertTxn(type: 1, amountMinor: 20000, date: now.add(const Duration(seconds: 1)));
+      expect(await repo.totalBalance(), 80000);
+      expect(await repo.spendableBalance(), 80000);
+      expect(await repo.totalGoalBalances(), 0);
+
+      // Step 3: saving to goal +30000
+      final goalId = await goalRepo.insert({
+        'name': 'Test Goal', 'iconKey': 'savings', 'colorHex': '4CAF50',
+        'status': 0, 'sortOrder': 0, 'createdAt': now.toIso8601String(),
+      });
+      await goalRepo.contribute(goalId, 30000);
+      expect(await repo.totalBalance(), 80000);
+      expect(await repo.totalGoalBalances(), 30000);
+      expect(await repo.spendableBalance(), 50000);
+
+      // Step 4: expense -10000
+      await insertTxn(type: 1, amountMinor: 10000, date: now.add(const Duration(seconds: 3)));
+      expect(await repo.totalBalance(), 70000);
+      expect(await repo.spendableBalance(), 40000);
+      expect(await repo.totalGoalBalances(), 30000);
+
+      // Step 5: withdraw from goal -5000
+      await goalRepo.withdraw(goalId, 5000);
+      expect(await repo.totalBalance(), 70000);
+      expect(await repo.totalGoalBalances(), 25000);
+      expect(await repo.spendableBalance(), 45000);
+
+      // Step 6: delete the -20000 expense
+      final allTxns = await repo.getAll();
+      final expense = allTxns.firstWhere((t) => t['type'] == 1 && t['amountMinor'] == 20000);
+      await repo.delete(expense['id'] as int);
+      expect(await repo.totalBalance(), 90000);
+      expect(await repo.spendableBalance(), 65000);
+      expect(await repo.totalGoalBalances(), 25000);
+
+      // Step 7: edit the income to 150000
+      final incomeTxn = allTxns.firstWhere((t) => t['type'] == 0);
+      await repo.update(incomeTxn['id'] as int, {'amountMinor': 150000});
+      expect(await repo.totalBalance(), 140000);
+      expect(await repo.spendableBalance(), 115000);
+      expect(await repo.totalGoalBalances(), 25000);
+
+      // Final invariant check
+      final total = await repo.totalBalance();
+      final spendable = await repo.spendableBalance();
+      final goals = await repo.totalGoalBalances();
+      expect(spendable + goals, total);
+    });
+  });
+
+  group('randomized stress test', () {
+    test('500 operations with fixed seed preserve invariants', () async {
+      final rng = Random(42);
+      final now = DateTime(2025, 6, 1, 12, 0, 0);
+      final txnIds = <int>[];
+      final goalIds = <int>[];
+
+      for (var i = 0; i < 500; i++) {
+        final op = rng.nextInt(6);
+        switch (op) {
+          case 0:
+            final id = await repo.insert({
+              'type': 0, 'amountMinor': rng.nextInt(9000) + 1000,
+              'date': now.add(Duration(seconds: i)).toIso8601String(),
+              'createdAt': now.toIso8601String(), 'updatedAt': now.toIso8601String(),
+            });
+            txnIds.add(id);
+          case 1:
+            final id = await repo.insert({
+              'type': 1, 'amountMinor': rng.nextInt(4000) + 100,
+              'date': now.add(Duration(seconds: i)).toIso8601String(),
+              'createdAt': now.toIso8601String(), 'updatedAt': now.toIso8601String(),
+            });
+            txnIds.add(id);
+          case 2:
+            if (goalIds.isNotEmpty) {
+              await goalRepo.contribute(goalIds[rng.nextInt(goalIds.length)], rng.nextInt(5000) + 100);
+            }
+          case 3:
+            if (goalIds.isNotEmpty) {
+              try {
+                await goalRepo.withdraw(goalIds[rng.nextInt(goalIds.length)], rng.nextInt(2000) + 100);
+              } catch (_) {}
+            }
+          case 4:
+            if (txnIds.isNotEmpty) {
+              await repo.update(txnIds[rng.nextInt(txnIds.length)], {'amountMinor': rng.nextInt(50000) + 500});
+            }
+          case 5:
+            if (txnIds.isNotEmpty) {
+              await repo.delete(txnIds.removeAt(rng.nextInt(txnIds.length)));
+            }
+        }
+
+        final total = await repo.totalBalance();
+        final spendable = await repo.spendableBalance();
+        final goals = await repo.totalGoalBalances();
+        expect(spendable + goals, total,
+          reason: 'Invariant broken at op $i (op=$op): spendable($spendable) + goals($goals) != total($total)');
+      }
+    });
+  });
+
+  group('extreme data', () {
+    test('maximum supported amount', () async {
+      final id = await repo.insert({
+        'type': 0, 'amountMinor': 9999999999999,
+        'date': DateTime(2025, 6, 1).toIso8601String(),
+        'createdAt': DateTime(2025, 6, 1).toIso8601String(),
+        'updatedAt': DateTime(2025, 6, 1).toIso8601String(),
+      });
+      expect(id, isPositive);
+      expect(await repo.totalBalance(), 9999999999999);
+      expect(await repo.spendableBalance(), 9999999999999);
+    });
+
+    test('very long category name stored and retrieved', () async {
+      final longName = 'A' * 500;
+      final catRepo = CategoryRepository(appDb);
+      final id = await catRepo.insert({
+        'name': longName, 'iconKey': 'test', 'colorHex': 'FF0000',
+        'type': 1, 'isArchived': 0, 'sortOrder': 0,
+        'createdAt': DateTime.now().toIso8601String(),
+      });
+      final cats = await catRepo.getAll();
+      final cat = cats.firstWhere((c) => c['id'] == id);
+      expect(cat['name'], longName);
+    });
+
+    test('very long goal name stored and retrieved', () async {
+      final longName = 'G' * 500;
+      final id = await goalRepo.insert({
+        'name': longName, 'iconKey': 'star', 'colorHex': '2196F3',
+        'status': 0, 'sortOrder': 0, 'createdAt': DateTime.now().toIso8601String(),
+      });
+      final goal = await goalRepo.getById(id);
+      expect(goal!['name'], longName);
+    });
+
+    test('very long transaction note stored and retrieved', () async {
+      final longNote = 'N' * 1000;
+      final id = await repo.insert({
+        'type': 0, 'amountMinor': 1000, 'note': longNote,
+        'date': DateTime(2025, 6, 1).toIso8601String(),
+        'createdAt': DateTime(2025, 6, 1).toIso8601String(),
+        'updatedAt': DateTime(2025, 6, 1).toIso8601String(),
+      });
+      final txn = await repo.getById(id);
+      expect(txn!['note'], longNote);
+    });
+
+    test('100 rapid contribute/withdraw cycles return to zero', () async {
+      final goalId = await goalRepo.insert({
+        'name': 'Stress Goal', 'targetAmountMinor': 999999999,
+        'iconKey': 'savings', 'colorHex': '4CAF50',
+        'status': 0, 'sortOrder': 0, 'createdAt': DateTime.now().toIso8601String(),
+      });
+      for (var i = 0; i < 100; i++) {
+        await goalRepo.contribute(goalId, 10000);
+        await goalRepo.withdraw(goalId, 10000);
+      }
+      expect(await goalRepo.currentAmount(goalId), 0);
+      final total = await repo.totalBalance();
+      final spendable = await repo.spendableBalance();
+      final goals = await repo.totalGoalBalances();
+      expect(spendable + goals, total);
+    });
+  });
+
+  group('goal delete invariant', () {
+    test('deleting goal preserves financial ledger and nullifies goalId', () async {
+      final now = DateTime(2025, 7, 1);
+      final goalId = await goalRepo.insert({
+        'name': 'Delete Me', 'targetAmountMinor': 50000,
+        'iconKey': 'savings', 'colorHex': '4CAF50',
+        'status': 0, 'sortOrder': 0, 'createdAt': now.toIso8601String(),
+      });
+      await goalRepo.contribute(goalId, 30000);
+      await goalRepo.contribute(goalId, 10000);
+
+      final totalBefore = await repo.totalBalance();
+      final spendableBefore = await repo.spendableBalance();
+      final goalsBefore = await repo.totalGoalBalances();
+
+      await goalRepo.delete(goalId);
+
+      // Financial balances unchanged — type=2 transactions preserved even without a goal
+      expect(await repo.totalBalance(), totalBefore);
+      expect(await repo.totalGoalBalances(), goalsBefore);
+      expect(await repo.spendableBalance(), spendableBefore);
+
+      final allTxns = await repo.getAll();
+      final savingTxns = allTxns.where((t) => t['type'] == 2).toList();
+      expect(savingTxns.length, 2);
+      for (final t in savingTxns) {
+        expect(t['goalId'], isNull);
+      }
+
+      expect(await goalRepo.getById(goalId), isNull);
     });
   });
 }
