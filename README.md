@@ -244,7 +244,7 @@ Clean — 0 analyzer issues.
 | Metric | Value |
 |--------|-------|
 | Dart files in `lib/` | 44 |
-| Lines of code in `lib/` | 6,959 |
+| Lines of code in `lib/` | 6,965 |
 | Test files | 7 |
 | Lines of code in `test/` | 2,841 |
 | Total tests | 189 |
