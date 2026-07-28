@@ -8,25 +8,53 @@ import '../application/goal_provider.dart';
 import '../../dashboard/application/dashboard_provider.dart';
 import 'goal_detail_screen.dart';
 
-class GoalsScreen extends ConsumerWidget {
+class GoalsScreen extends ConsumerStatefulWidget {
   const GoalsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<GoalsScreen> createState() => _GoalsScreenState();
+}
+
+class _GoalsScreenState extends ConsumerState<GoalsScreen> {
+  @override
+  Widget build(BuildContext context) {
     final goals = ref.watch(goalsProvider);
     return Scaffold(
       appBar: AppBar(title: Text(AppLocalizations.of(context)!.appBarTitle_goals)),
-      body: goals.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text(AppLocalizations.of(context)!.error_generic('$e'))),
-        data: (list) {
-          if (list.isEmpty) return Center(child: Text(AppLocalizations.of(context)!.emptyState_noGoals));
-          return ListView.builder(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
-            itemCount: list.length,
-            itemBuilder: (ctx, i) => _GoalTile(goal: list[i], key: ValueKey(list[i]['id'])),
-          );
+      body: RefreshIndicator(
+        onRefresh: () async {
+          invalidateGoals(ref);
+          invalidateDashboard(ref);
         },
+        child: goals.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (e, _) => Center(
+            child: Padding(
+              padding: const EdgeInsets.all(32),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.error_outline, size: 48),
+                  const SizedBox(height: 12),
+                  Text(AppLocalizations.of(context)!.error_generic('$e'), textAlign: TextAlign.center),
+                  const SizedBox(height: 12),
+                  FilledButton(
+                    onPressed: () => invalidateGoals(ref),
+                    child: Text(AppLocalizations.of(context)!.btn_retry),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          data: (list) {
+            if (list.isEmpty) return Center(child: Text(AppLocalizations.of(context)!.emptyState_noGoals));
+            return ListView.builder(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
+              itemCount: list.length,
+              itemBuilder: (ctx, i) => _GoalTile(goal: list[i], key: ValueKey(list[i]['id'])),
+            );
+          },
+        ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _add(context, ref),

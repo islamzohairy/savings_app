@@ -40,7 +40,24 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         },
         child: data.when(
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) => Center(child: Text(AppLocalizations.of(context)!.error_generic('$e'))),
+          error: (e, _) => Center(
+            child: Padding(
+              padding: const EdgeInsets.all(32),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.error_outline, size: 48),
+                  const SizedBox(height: 12),
+                  Text(AppLocalizations.of(context)!.error_generic('$e'), textAlign: TextAlign.center),
+                  const SizedBox(height: 12),
+                  FilledButton(
+                    onPressed: () => invalidateDashboard(ref),
+                    child: Text(AppLocalizations.of(context)!.btn_retry),
+                  ),
+                ],
+              ),
+            ),
+          ),
           data: (d) => ListView(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
             children: [

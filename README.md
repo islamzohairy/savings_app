@@ -196,9 +196,9 @@ flutter test
 flutter test --coverage
 ```
 
-**158 tests** across 7 test files (2 pre-existing shader failures excluded):
-- `test/database_test.dart` — 73 tests (monthTotal, totalBalance, categoryBreakdown, monthlyTrend, topExpenses, savingsRate, spendable balance, goal overfunding, pagination, category filtering, **delete behavioral invariants** (goal/category/transaction delete preserves balances), **stress tests** (rapid consecutive deletes, interleaved operations, orphan repair idempotency), **v3 migration/orphan repair** (relink categoryId, idempotent repair, balance after repair), **goal status transitions** (active→paused→completed, active→archived, contribute when paused, withdraw from completed), **boundary stress** (max minor units, 50 rapid inserts, 30 categories, zero-target goal), **archive lifecycle** (archive preserves transactions, FK blocks delete with transactions, archive toggle), **financial invariants** (spendable + goals = total, savingsRate, goalProgress, categoryBreakdown totals, withdraw preserves balance, timestamps preserved), **amount validation** (zero/negative rejection), **atomicity** (contribute/withdraw atomic transactions, auto-complete/revert on target change), **projectedCompletion** (null on no data, null on zero, now when reached, future when saving))
-- `test/money_test.dart` — 50 tests (toWesternDigits, MoneyInputFormatter, validateAmount, ArabicDigitFormatter, formatAmount, formatCompactAmount)
+**181 tests** across 7 test files (2 pre-existing shader failures excluded):
+- `test/database_test.dart` — 88 tests (monthTotal, totalBalance, categoryBreakdown, monthlyTrend, topExpenses, savingsRate, spendable balance, goal overfunding, pagination, category filtering, **delete behavioral invariants** (goal/category/transaction delete preserves balances), **stress tests** (rapid consecutive deletes, interleaved operations, orphan repair idempotency), **v3 migration/orphan repair** (relink categoryId, idempotent repair, balance after repair), **goal status transitions** (active→paused→completed, active→archived, contribute when paused, withdraw from completed), **boundary stress** (max minor units, 50 rapid inserts, 30 categories, zero-target goal), **archive lifecycle** (archive preserves transactions, FK blocks delete with transactions, archive toggle), **financial invariants** (spendable + goals = total, savingsRate, goalProgress, categoryBreakdown totals, withdraw preserves balance, timestamps preserved), **amount validation** (zero/negative rejection), **atomicity** (contribute/withdraw atomic transactions, auto-complete/revert on target change), **projectedCompletion** (null on no data, null on zero, now when reached, future when saving), **settings CRUD** (round-trip set/get/delete/missing), **cycle boundary math** (previousCycleStart, nextCycleStart edge cases), **topExpensesPaginated** (pagination, limit, empty), **savingsInRange** (income minus expenses over range), **totalByType** (income/expense/saving totals))
+- `test/money_test.dart` — 49 tests (toWesternDigits, MoneyInputFormatter, validateAmount, ArabicDigitFormatter, formatAmount, formatCompactAmount)
 - `test/widget_extracted_test.dart` — 16 tests (render tests for all extracted widgets)
 - `test/calculations_test.dart` — 17 tests (savingsRate, goalProgress, colorFromHex — valid/invalid/edge)
 - `test/widget_dialogs_test.dart` — 6 tests (GoalContributeDialog, GoalEditDialog, GoalProgressCard, GoalHistoryList behavioral tests)
@@ -234,6 +234,10 @@ Clean — 0 analyzer issues. 2 pre-existing test failures from `ink_sparkle.frag
 - **Transaction edit/delete** now invalidates goals provider (stale goal data fix).
 - **Deleted goal in dropdown** — new transactions clear selection; archived goals preserved for historical records.
 - **Text overflow protection** — amounts and names use `maxLines: 1, overflow: TextOverflow.ellipsis` in tiles.
+- **Goals screen** — shows error state with retry button and pull-to-refresh (matching Dashboard/Reports pattern).
+- **Dashboard screen** — shows error state with retry button when data loading fails.
+- **Goal history** — shows error SnackBar on pagination load failure; editing a transaction from goal history now invalidates all affected providers (stale data fix).
+- **Goal history pagination** — mounted guard prevents crash if user navigates away during async load.
 
 ## Project Stats
 
@@ -243,7 +247,7 @@ Clean — 0 analyzer issues. 2 pre-existing test failures from `ink_sparkle.frag
 | Lines of code in `lib/` | 6,254 |
 | Test files | 7 |
 | Lines of code in `test/` | 1,750 |
-| Total tests | 158 |
+| Total tests | 181 |
 | ARB translation keys | 162 |
 | Supported languages | 2 (English, Arabic) |
 | Seed categories | 14 (+ 1 hidden recovery category) |

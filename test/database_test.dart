@@ -1527,4 +1527,160 @@ void main() {
       });
     });
   });
+
+  group('topExpensesPaginated', () {
+    test('returns expenses sorted descending with cursor pagination', () async {
+      final (start, end) = monthDateRange(DateTime(2025, 7, 15), 1);
+      final catId = await database.insert('categories', {
+        'name': 'Food', 'iconKey': 'restaurant', 'colorHex': 'FF5722',
+        'type': 1, 'isArchived': 0, 'sortOrder': 0, 'createdAt': DateTime.now().toIso8601String(),
+      });
+      for (var i = 0; i < 120; i++) {
+        await insertTxn(type: 1, amountMinor: (i + 1) * 1000, date: DateTime(2025, 7, 15), categoryId: catId);
+      }
+      final batch1 = await repo.topExpensesPaginated(start, end, limit: 50);
+      expect(batch1.length, 50);
+      expect(batch1.first['amountMinor'], 120000);
+      final cursor1Amount = batch1.last['amountMinor'] as int;
+      final cursor1Id = batch1.last['id'] as int;
+      final batch2 = await repo.topExpensesPaginated(start, end, limit: 50, cursorAmountMinor: cursor1Amount, cursorId: cursor1Id);
+      expect(batch2.length, 50);
+      final allIds = [...batch1, ...batch2].map((r) => r['id'] as int).toSet();
+      expect(allIds.length, 100);
+      final cursor2Amount = batch2.last['amountMinor'] as int;
+      final cursor2Id = batch2.last['id'] as int;
+      final batch3 = await repo.topExpensesPaginated(start, end, limit: 50, cursorAmountMinor: cursor2Amount, cursorId: cursor2Id);
+      expect(batch3.length, 20);
+      final allBatchIds = [...batch1, ...batch2, ...batch3].map((r) => r['id'] as int).toSet();
+      expect(allBatchIds.length, 120);
+    });
+
+    test('returns empty for empty date range', () async {
+      final (start, end) = monthDateRange(DateTime(2025, 1, 1), 1);
+      final result = await repo.topExpensesPaginated(start, end, limit: 50);
+      expect(result, isEmpty);
+    });
+
+    test('last page returns fewer than limit', () async {
+      final (start, end) = monthDateRange(DateTime(2025, 7, 15), 1);
+      for (var i = 0; i < 3; i++) {
+        await insertTxn(type: 1, amountMinor: (i + 1) * 1000, date: DateTime(2025, 7, 15));
+      }
+      final batch = await repo.topExpensesPaginated(start, end, limit: 50);
+      expect(batch.length, 3);
+    });
+  });
+
+  group('savingsInRange', () {
+    test('sums type=2 transactions in date range', () async {
+      final (start, end) = monthDateRange(DateTime(2025, 7, 15), 1);
+      await insertTxn(type: 2, amountMinor: 5000, date: DateTime(2025, 7, 16));
+      await insertTxn(type: 2, amountMinor: 3000, date: DateTime(2025, 7, 20));
+      await insertTxn(type: 2, amountMinor: 2000, date: DateTime(2025, 6, 15));
+      expect(await repo.savingsInRange(start, end), 8000);
+    });
+
+    test('returns 0 when no savings in range', () async {
+      final (start, end) = monthDateRange(DateTime(2025, 7, 15), 1);
+      await insertTxn(type: 2, amountMinor: 5000, date: DateTime(2025, 6, 15));
+      expect(await repo.savingsInRange(start, end), 0);
+    });
+  });
+
+  group('totalByType', () {
+    test('sums all transactions of given type', () async {
+      await insertTxn(type: 0, amountMinor: 100000, date: DateTime(2025, 1, 1));
+      await insertTxn(type: 0, amountMinor: 50000, date: DateTime(2025, 6, 1));
+      await insertTxn(type: 1, amountMinor: 30000, date: DateTime(2025, 3, 1));
+      expect(await repo.totalByType(TransactionType.income), 150000);
+      expect(await repo.totalByType(TransactionType.expense), 30000);
+    });
+
+    test('returns 0 for type with no transactions', () async {
+      await insertTxn(type: 0, amountMinor: 10000, date: DateTime(2025, 1, 1));
+      expect(await repo.totalByType(TransactionType.expense), 0);
+    });
+  });
+
+  group('settings CRUD', () {
+    test('setSetting and getSetting round-trip', () async {
+      await appDb.setSetting('currencyCode', 'EUR');
+      expect(await appDb.getSetting('currencyCode'), 'EUR');
+    });
+
+    test('setSetting overwrites existing value', () async {
+      await appDb.setSetting('themeMode', 'light');
+      await appDb.setSetting('themeMode', 'dark');
+      expect(await appDb.getSetting('themeMode'), 'dark');
+    });
+
+    test('getSetting returns null for missing key', () async {
+      expect(await appDb.getSetting('nonexistent'), isNull);
+    });
+
+    test('hasCompletedOnboarding returns false initially', () async {
+      expect(await appDb.hasCompletedOnboarding(), isFalse);
+    });
+
+    test('completeOnboarding sets flag', () async {
+      await appDb.completeOnboarding();
+      expect(await appDb.hasCompletedOnboarding(), isTrue);
+    });
+  });
+
+  group('previousCycleStart / nextCycleStart', () {
+    test('previousCycleStart returns start of previous month', () async {
+      final result = previousCycleStart(DateTime(2025, 7, 1), 1);
+      expect(result, DateTime(2025, 6, 1));
+    });
+
+    test('previousCycleStart crosses year boundary', () async {
+      final result = previousCycleStart(DateTime(2025, 1, 1), 1);
+      expect(result, DateTime(2024, 12, 1));
+    });
+
+    test('nextCycleStart returns start of next month', () async {
+      final result = nextCycleStart(DateTime(2025, 7, 1), 1);
+      expect(result, DateTime(2025, 8, 1));
+    });
+
+    test('nextCycleStart crosses year boundary', () async {
+      final result = nextCycleStart(DateTime(2025, 12, 1), 1);
+      expect(result, DateTime(2026, 1, 1));
+    });
+
+    test('previousCycleStart with non-default monthStartDay', () async {
+      final result = previousCycleStart(DateTime(2025, 8, 1), 25);
+      expect(result, DateTime(2025, 7, 25));
+    });
+
+    test('nextCycleStart with non-default monthStartDay', () async {
+      final result = nextCycleStart(DateTime(2025, 7, 25), 25);
+      expect(result, DateTime(2025, 8, 25));
+    });
+  });
+
+  group('getById / topExpensesCount', () {
+    test('getById returns correct transaction', () async {
+      final id = await repo.insert({
+        'type': 0, 'amountMinor': 50000, 'date': DateTime(2025, 7, 15).toIso8601String(),
+        'createdAt': DateTime.now().toIso8601String(), 'updatedAt': DateTime.now().toIso8601String(),
+      });
+      final row = await repo.getById(id);
+      expect(row, isNotNull);
+      expect(row!['amountMinor'], 50000);
+    });
+
+    test('getById returns null for nonexistent id', () async {
+      expect(await repo.getById(99999), isNull);
+    });
+
+    test('topExpensesCount counts expenses in range', () async {
+      final (start, end) = monthDateRange(DateTime(2025, 7, 15), 1);
+      await insertTxn(type: 1, amountMinor: 1000, date: DateTime(2025, 7, 15));
+      await insertTxn(type: 1, amountMinor: 2000, date: DateTime(2025, 7, 20));
+      await insertTxn(type: 0, amountMinor: 3000, date: DateTime(2025, 7, 15));
+      expect(await repo.topExpensesCount(start, end), 2);
+    });
+  });
 }

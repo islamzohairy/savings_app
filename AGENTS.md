@@ -74,6 +74,8 @@ Categories (`/categories`) is not in the nav — reached via the Activity screen
 - **Layering:** `presentation/` is widgets and composition only. Any file with no widget in it — calculations, file I/O, business logic — belongs in `data/` or `application/`, never `presentation/`, regardless of how small or "helper"-like it is.
 - **File size as a signal, not a target:** a `presentation/` file crossing ~250 lines is worth examining for an extractable dialog, list-item widget, or state-view — not because of the number itself, but because that's usually where a mixed-concerns problem is hiding. A file that's long but genuinely single-purpose doesn't need splitting just to hit a line count.
 - **Localization:** Western (Latin) numerals always, even under the Arabic locale. Charts and the PIN keypad stay left-to-right regardless of locale. Seed category names use the `seedKey` + ARB-lookup pattern, cleared automatically when the user edits the name, so translations never clobber a user's customization.
+- **Mounted guards after async gaps:** Every `setState` / `ref.invalidate` call after an `await` must be preceded by `if (!mounted) return;`. This applies to all `_loadMore` pagination callbacks, `initState` async work, and any callback triggered from a non-UI context (e.g., `pop()` closures).
+- **Invalidation completeness:** When a mutation affects data in multiple features, all affected providers must be invalidated — not just the most obvious one. Example: editing a transaction from goal history must invalidate both `goalTransactionsProvider` (the list) and `transactionProvider` (the full transaction record).
 
 ### Project-specific conventions
 
@@ -174,6 +176,7 @@ All delete dialogs use `StatefulWidget` for double-tap protection (`_deleting` f
 - [x] Stabilization: MoneyInputFormatter + validateAmount (38 tests), filtered-list normalization, overflow fixes, mounted checks (115 total tests, 3 analyzer infos)
 - [x] Stabilization pass 2: error handling (try/catch + error UI/retry on 5 screens), archive lifecycle fix, formatCompactAmount (K/M/B for narrow UI), btn_retry ARB key, 29 new tests (boundary stress, financial invariants, archive lifecycle, pagination, compact formatter) — 144 total, 3 analyzer infos
 - [x] QA hardening: 19 tasks across 7 phases — critical error handling (app init, route parsing, financial atomicity), high error handling (goal edit, onboarding, history, progress card, app lock), medium error handling (categories, settings, backup, dropdown safety), UI overflow, 9 new tests — 158 total, 0 analyzer issues (2 pre-existing shader failures)
+- [x] Production-readiness audit: 7-phase audit (workflow crashes, extreme data, state management, pagination, financial invariants, test coverage, docs) — mounted guard fix in goal history, invalidation completeness fix, retry/error UI on goals + dashboard, 23 new database tests — 181 total, 0 analyzer issues
 
 ## Known Issues
 1. Spec called for Drift; implementation uses raw sqflite (deviation accepted)

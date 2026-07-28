@@ -71,6 +71,7 @@ class _GoalHistoryListState extends ConsumerState<GoalHistoryList> {
     try {
       final repo = ref.read(transactionRepoProvider);
       final batch = await repo.goalHistoryPaginated(widget.goalId, limit: _batchSize, cursorDate: _cursorDate, cursorId: _cursorId);
+      if (!mounted) return;
       setState(() {
         _txns.addAll(batch);
         _hasMore = batch.length == _batchSize;
@@ -81,7 +82,12 @@ class _GoalHistoryListState extends ConsumerState<GoalHistoryList> {
         _loading = false;
       });
     } catch (e) {
-      if (mounted) setState(() => _loading = false);
+      if (mounted) {
+        setState(() => _loading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppLocalizations.of(context)!.error_generic('$e'))),
+        );
+      }
     }
   }
 
@@ -180,6 +186,7 @@ class _GoalHistoryListState extends ConsumerState<GoalHistoryList> {
         await Navigator.push(context, MaterialPageRoute(
           builder: (_) => AddEditTransactionScreen(transaction: fresh ?? t),
         ));
+        invalidateTransactions(ref);
         invalidateGoals(ref);
         invalidateDashboard(ref);
         if (mounted) {
