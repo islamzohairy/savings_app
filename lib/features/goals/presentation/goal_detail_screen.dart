@@ -83,7 +83,7 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
             children: [
               const Icon(Icons.search_off, size: 48),
               const SizedBox(height: 12),
-              Text(AppLocalizations.of(context)!.error_generic('Goal not found')),
+              Text(AppLocalizations.of(context)!.error_goalNotFound),
               const SizedBox(height: 12),
               FilledButton(onPressed: () => Navigator.pop(context), child: Text(AppLocalizations.of(context)!.btn_back)),
             ],
@@ -107,7 +107,7 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
               PopupMenuItem(value: 'edit', child: Text(AppLocalizations.of(context)!.menu_edit)),
               if (status == GoalStatus.active) PopupMenuItem(value: 'pause', child: Text(AppLocalizations.of(context)!.menu_pause)),
               if (status == GoalStatus.paused) PopupMenuItem(value: 'resume', child: Text(AppLocalizations.of(context)!.menu_resume)),
-              if (status != GoalStatus.completed) PopupMenuItem(value: 'complete', child: Text(AppLocalizations.of(context)!.menu_markComplete)),
+              if (status != GoalStatus.completed && _currentAmount > 0) PopupMenuItem(value: 'complete', child: Text(AppLocalizations.of(context)!.menu_markComplete)),
               if (status == GoalStatus.completed) PopupMenuItem(value: 'reopen', child: Text(AppLocalizations.of(context)!.menu_reopen)),
               if (status == GoalStatus.archived) PopupMenuItem(value: 'unarchive', child: Text(AppLocalizations.of(context)!.menu_unarchive)),
               if (status != GoalStatus.archived) PopupMenuItem(value: 'archive', child: Text(AppLocalizations.of(context)!.menu_archive)),
@@ -159,7 +159,9 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
               const SizedBox(width: 12),
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: _currentAmount > 0 ? () => _withdraw(context) : null,
+                  onPressed: (status == GoalStatus.active || status == GoalStatus.paused) && _currentAmount > 0
+                      ? () => _withdraw(context)
+                      : null,
                   icon: const Icon(Icons.remove),
                   label: Text(AppLocalizations.of(context)!.btn_withdraw),
                 ),

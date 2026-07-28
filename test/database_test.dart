@@ -1025,8 +1025,25 @@ void main() {
       }
     });
 
-    test('contribute to completed goal — transaction inserts, goal stays completed', () async {
+    test('contribute to completed goal — stays completed when total >= target', () async {
       final goalId = await createGoal('Contribute Completed Test');
+
+      await goalRepo.update(goalId, {'status': GoalStatus.completed.index});
+      expect(await getStatus(goalId), GoalStatus.completed.index);
+
+      await goalRepo.contribute(goalId, 50000);
+
+      final txns = await database.query('transactions',
+          where: 'goalId = ? AND type = 2', whereArgs: [goalId]);
+      expect(txns.length, 1, reason: 'contribution transaction must be inserted');
+
+      final g = await goalRepo.getById(goalId);
+      expect(g!['status'], GoalStatus.completed.index,
+          reason: 'goal stays completed when total >= target after contribute');
+    });
+
+    test('contribute to completed goal — reverts to active when total < target', () async {
+      final goalId = await createGoal('Contribute Completed Revert Test');
 
       await goalRepo.update(goalId, {'status': GoalStatus.completed.index});
       expect(await getStatus(goalId), GoalStatus.completed.index);
@@ -1038,8 +1055,8 @@ void main() {
       expect(txns.length, 1, reason: 'contribution transaction must be inserted');
 
       final g = await goalRepo.getById(goalId);
-      expect(g!['status'], GoalStatus.completed.index,
-          reason: 'goal must remain completed — contribute does not change status');
+      expect(g!['status'], GoalStatus.active.index,
+          reason: 'goal reverts to active when total < target after contribute');
     });
 
     test('contribute to archived goal — transaction inserts, goal stays archived', () async {
@@ -1435,10 +1452,10 @@ void main() {
     test('withdraw atomicity: transaction and goal state update succeed together', () async {
       final goalId = await goalRepo.insert({
         'name': 'Withdraw Atomic Test',
-        'targetAmountMinor': 10000,
+        'targetAmountMinor': 100000,
         'iconKey': 'flag',
         'colorHex': '3F51B5',
-        'status': GoalStatus.completed.index,
+        'status': GoalStatus.active.index,
         'sortOrder': 0,
         'createdAt': DateTime.now().toIso8601String(),
       });
@@ -1450,7 +1467,7 @@ void main() {
       expect(amt, 5000, reason: 'amount after partial withdrawal');
 
       final goal = await goalRepo.getById(goalId);
-      expect(goal!['status'], GoalStatus.active.index, reason: 'goal should revert to active when below target');
+      expect(goal!['status'], GoalStatus.active.index, reason: 'goal stays active after withdrawal');
     });
 
     test('transactions preserve correct timestamps', () async {
@@ -1896,6 +1913,185 @@ void main() {
       }
 
       expect(await goalRepo.getById(goalId), isNull);
+    });
+  });
+
+  group('reports pagination (topExpensesPaginated)', () {
+    test('returns correct batches via keyset cursor', () async {
+      final (start, end) = monthDateRange(DateTime(2025, 7, 15), 1);
+      final catId = await database.insert('categories', {
+        'name': 'Food', 'iconKey': 'restaurant', 'colorHex': 'FF5722',
+        'type': 1, 'isArchived': 0, 'sortOrder': 0, 'createdAt': DateTime.now().toIso8601String(),
+      });
+      for (var i = 0; i < 120; i++) {
+        await insertTxn(type: 1, amountMinor: (i + 1) * 100, date: start.add(Duration(hours: i)), categoryId: catId);
+      }
+      final page1 = await repo.topExpensesPaginated(start, end, limit: 50);
+      expect(page1.length, 50);
+      expect(page1.first['amountMinor'], 12000);
+      final cursorAmount = page1.last['amountMinor'] as int;
+      final cursorId = page1.last['id'] as int;
+      final page2 = await repo.topExpensesPaginated(start, end, limit: 50, cursorAmountMinor: cursorAmount, cursorId: cursorId);
+      expect(page2.length, 50);
+      final allIds = [...page1, ...page2].map((t) => t['id'] as int).toSet();
+      expect(allIds.length, 100);
+      final page3 = await repo.topExpensesPaginated(start, end, limit: 50, cursorAmountMinor: page2.last['amountMinor'] as int, cursorId: page2.last['id'] as int);
+      expect(page3.length, 20);
+    });
+  });
+
+  group('withdraw status validation', () {
+    test('withdraw from active goal succeeds', () async {
+      final now = DateTime(2025, 7, 1);
+      final goalId = await goalRepo.insert({
+        'name': 'Active Goal', 'targetAmountMinor': 50000,
+        'iconKey': 'flag', 'colorHex': '4CAF50',
+        'status': 0, 'sortOrder': 0, 'createdAt': now.toIso8601String(),
+      });
+      await goalRepo.contribute(goalId, 20000);
+      await goalRepo.withdraw(goalId, 5000);
+      expect(await goalRepo.currentAmount(goalId), 15000);
+    });
+
+    test('withdraw from paused goal succeeds', () async {
+      final now = DateTime(2025, 7, 1);
+      final goalId = await goalRepo.insert({
+        'name': 'Paused Goal', 'targetAmountMinor': 50000,
+        'iconKey': 'flag', 'colorHex': '4CAF50',
+        'status': 1, 'sortOrder': 0, 'createdAt': now.toIso8601String(),
+      });
+      await goalRepo.contribute(goalId, 20000);
+      await goalRepo.withdraw(goalId, 5000);
+      expect(await goalRepo.currentAmount(goalId), 15000);
+    });
+
+    test('withdraw from completed goal throws StateError', () async {
+      final now = DateTime(2025, 7, 1);
+      final goalId = await goalRepo.insert({
+        'name': 'Completed Goal', 'targetAmountMinor': 10000,
+        'iconKey': 'flag', 'colorHex': '4CAF50',
+        'status': 0, 'sortOrder': 0, 'createdAt': now.toIso8601String(),
+      });
+      await goalRepo.contribute(goalId, 10000);
+      expect(await goalRepo.currentAmount(goalId), 10000);
+      final goal = await goalRepo.getById(goalId);
+      expect(goal!['status'], 2);
+      expect(() => goalRepo.withdraw(goalId, 5000), throwsA(isA<StateError>()));
+    });
+
+    test('withdraw from archived goal throws StateError', () async {
+      final now = DateTime(2025, 7, 1);
+      final goalId = await goalRepo.insert({
+        'name': 'Archived Goal', 'targetAmountMinor': 50000,
+        'iconKey': 'flag', 'colorHex': '4CAF50',
+        'status': 3, 'sortOrder': 0, 'createdAt': now.toIso8601String(),
+      });
+      await goalRepo.contribute(goalId, 20000);
+      expect(() => goalRepo.withdraw(goalId, 5000), throwsA(isA<StateError>()));
+    });
+  });
+
+  group('goal status re-evaluation (reEvaluateGoalStatus)', () {
+    test('active goal completes when transaction edited above target', () async {
+      final now = DateTime(2025, 7, 1);
+      final goalId = await goalRepo.insert({
+        'name': 'ReEval Goal', 'targetAmountMinor': 10000,
+        'iconKey': 'flag', 'colorHex': '4CAF50',
+        'status': 0, 'sortOrder': 0, 'createdAt': now.toIso8601String(),
+      });
+      await goalRepo.contribute(goalId, 5000);
+      expect((await goalRepo.getById(goalId))!['status'], 0);
+      final txnRows = await repo.getAll(where: 'goalId = ? AND type = 2', whereArgs: [goalId]);
+      final txnId = txnRows.first['id'] as int;
+      await repo.update(txnId, {'amountMinor': 12000});
+      await goalRepo.reEvaluateGoalStatus(goalId);
+      expect((await goalRepo.getById(goalId))!['status'], 2);
+    });
+
+    test('completed goal reverts to active when transaction edited below target', () async {
+      final now = DateTime(2025, 7, 1);
+      final goalId = await goalRepo.insert({
+        'name': 'Revert Goal', 'targetAmountMinor': 10000,
+        'iconKey': 'flag', 'colorHex': '4CAF50',
+        'status': 0, 'sortOrder': 0, 'createdAt': now.toIso8601String(),
+      });
+      await goalRepo.contribute(goalId, 5000);
+      await goalRepo.contribute(goalId, 5000);
+      expect((await goalRepo.getById(goalId))!['status'], 2);
+      final txnRows = await repo.getAll(where: 'goalId = ? AND type = 2', whereArgs: [goalId]);
+      final txnId = txnRows.first['id'] as int;
+      await repo.update(txnId, {'amountMinor': 2000});
+      await goalRepo.reEvaluateGoalStatus(goalId);
+      expect((await goalRepo.getById(goalId))!['status'], 0);
+    });
+
+    test('paused goal auto-completes when contribution reaches target', () async {
+      final now = DateTime(2025, 7, 1);
+      final goalId = await goalRepo.insert({
+        'name': 'Paused Auto', 'targetAmountMinor': 10000,
+        'iconKey': 'flag', 'colorHex': '4CAF50',
+        'status': 1, 'sortOrder': 0, 'createdAt': now.toIso8601String(),
+      });
+      await goalRepo.contribute(goalId, 8000);
+      expect((await goalRepo.getById(goalId))!['status'], 1);
+      await goalRepo.contribute(goalId, 2000);
+      expect((await goalRepo.getById(goalId))!['status'], 2);
+    });
+
+    test('goal with no target is not affected by re-evaluation', () async {
+      final now = DateTime(2025, 7, 1);
+      final goalId = await goalRepo.insert({
+        'name': 'No Target Goal', 'targetAmountMinor': null,
+        'iconKey': 'flag', 'colorHex': '4CAF50',
+        'status': 0, 'sortOrder': 0, 'createdAt': now.toIso8601String(),
+      });
+      await goalRepo.contribute(goalId, 50000);
+      await goalRepo.reEvaluateGoalStatus(goalId);
+      expect((await goalRepo.getById(goalId))!['status'], 0);
+    });
+  });
+
+  group('withdrawal amount sign preservation', () {
+    test('inserted negative amount remains negative after retrieve', () async {
+      final now = DateTime(2025, 7, 1);
+      final goalId = await goalRepo.insert({
+        'name': 'Sign Test', 'targetAmountMinor': 50000,
+        'iconKey': 'flag', 'colorHex': '4CAF50',
+        'status': 0, 'sortOrder': 0, 'createdAt': now.toIso8601String(),
+      });
+      await goalRepo.contribute(goalId, 20000);
+      await goalRepo.withdraw(goalId, 5000);
+      final txns = await repo.getAll(where: 'goalId = ? AND type = 2', whereArgs: [goalId]);
+      expect(txns.length, 2);
+      final withdrawal = txns.firstWhere((t) => (t['amountMinor'] as int) < 0);
+      expect(withdrawal['amountMinor'], -5000);
+      final updated = Map<String, dynamic>.from(withdrawal);
+      updated['amountMinor'] = -3000;
+      await repo.update(withdrawal['id'] as int, updated);
+      final reloaded = await repo.getById(withdrawal['id'] as int);
+      expect(reloaded!['amountMinor'], -3000);
+    });
+  });
+
+  group('duplicate category name check', () {
+    test('isNameTaken returns true for duplicate', () async {
+      final catRepo = CategoryRepository(appDb);
+      await catRepo.insert({
+        'name': 'Groceries', 'iconKey': 'restaurant', 'colorHex': 'FF5722',
+        'type': 1, 'isArchived': 0, 'sortOrder': 0, 'createdAt': DateTime.now().toIso8601String(),
+      });
+      expect(await catRepo.isNameTaken('Groceries'), true);
+      expect(await catRepo.isNameTaken('Transport'), false);
+    });
+
+    test('isNameTaken excludes specified id for edits', () async {
+      final catRepo = CategoryRepository(appDb);
+      final id = await catRepo.insert({
+        'name': 'Food', 'iconKey': 'restaurant', 'colorHex': 'FF5722',
+        'type': 1, 'isArchived': 0, 'sortOrder': 0, 'createdAt': DateTime.now().toIso8601String(),
+      });
+      expect(await catRepo.isNameTaken('Food', excludeId: id), false);
+      expect(await catRepo.isNameTaken('Food'), true);
     });
   });
 }

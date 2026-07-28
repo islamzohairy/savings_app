@@ -26,6 +26,7 @@ class _AddEditTransactionScreenState extends ConsumerState<AddEditTransactionScr
   int? _goalId;
   DateTime _date = DateTime.now();
   bool _isSaving = false;
+  bool _isNegativeAmount = false;
 
   bool get _isEdit => widget.transaction != null;
 
@@ -35,7 +36,9 @@ class _AddEditTransactionScreenState extends ConsumerState<AddEditTransactionScr
     if (_isEdit) {
       final t = widget.transaction!;
       _type = TransactionType.values[t['type'] as int];
-      _amountCtrl.text = ((t['amountMinor'] as int) / 100).toStringAsFixed(2);
+      final amountMinor = t['amountMinor'] as int;
+      _isNegativeAmount = amountMinor < 0;
+      _amountCtrl.text = (amountMinor.abs() / 100).toStringAsFixed(2);
       _categoryId = t['categoryId'] as int?;
       _goalId = t['goalId'] as int?;
       _date = DateTime.parse(t['date'] as String);
@@ -151,6 +154,7 @@ class _AddEditTransactionScreenState extends ConsumerState<AddEditTransactionScr
           const SizedBox(height: 16),
           TextField(
             controller: _noteCtrl,
+            maxLength: 200,
             decoration: InputDecoration(labelText: AppLocalizations.of(context)!.fieldLabel_noteOptional),
           ),
           const SizedBox(height: 24),
@@ -198,7 +202,9 @@ class _AddEditTransactionScreenState extends ConsumerState<AddEditTransactionScr
       return;
     }
 
-    final minor = validation.minorUnits;
+    final minor = _isEdit && _isNegativeAmount && _type == TransactionType.saving
+        ? -validation.minorUnits.abs()
+        : validation.minorUnits;
     setState(() => _isSaving = true);
 
     final row = {
@@ -218,6 +224,9 @@ class _AddEditTransactionScreenState extends ConsumerState<AddEditTransactionScr
       } else {
         row['createdAt'] = DateTime.now().toIso8601String();
         await repo.insert(row);
+      }
+      if (_type == TransactionType.saving && _goalId != null) {
+        await ref.read(goalRepoProvider).reEvaluateGoalStatus(_goalId!);
       }
     } catch (e) {
       if (!mounted) return;

@@ -24,7 +24,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(path: '/goals', builder: (_, _) => const GoalsScreen()),
           GoRoute(
             path: '/goals/:id',
-            builder: (_, state) {
+            builder: (context, state) {
               final idStr = state.pathParameters['id'];
               final id = int.tryParse(idStr ?? '');
               if (id == null) {
@@ -37,7 +37,7 @@ final routerProvider = Provider<GoRouter>((ref) {
                         children: [
                           const Icon(Icons.error_outline, size: 48),
                           const SizedBox(height: 12),
-                          Text('Invalid goal ID', textAlign: TextAlign.center),
+                          Text(AppLocalizations.of(context)!.error_invalidGoalId, textAlign: TextAlign.center),
                         ],
                       ),
                     ),

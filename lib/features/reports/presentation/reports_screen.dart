@@ -22,6 +22,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   late DateTime _cycleStart;
   late DateTime _cycleEnd;
   late Future<_ReportData?> _future;
+  String? _loadError;
   final List<Map<String, dynamic>> _topExpenses = [];
   bool _hasMoreTopExpenses = true;
   bool _loadingMore = false;
@@ -40,6 +41,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   }
 
   Future<_ReportData?> _load() async {
+    _loadError = null;
     try {
       final txnRepo = ref.read(transactionRepoProvider);
       final income = await txnRepo.monthTotal(TransactionType.income, _cycleStart, _cycleEnd);
@@ -57,8 +59,10 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         _topCursorAmount = topBatch.last['amountMinor'] as int;
         _topCursorId = topBatch.last['id'] as int;
       }
-      return _ReportData(income, expenses, net, rate, breakdown, trend, List.from(_topExpenses), _hasMoreTopExpenses);
+      final data = _ReportData(income, expenses, net, rate, breakdown, trend);
+      return data;
     } catch (e) {
+      _loadError = '$e';
       return null;
     }
   }
@@ -133,7 +137,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                   children: [
                     const Icon(Icons.error_outline, size: 48),
                     const SizedBox(height: 12),
-                    Text(AppLocalizations.of(context)!.error_generic(''), textAlign: TextAlign.center),
+                    Text(AppLocalizations.of(context)!.error_generic(_loadError ?? ''), textAlign: TextAlign.center),
                     const SizedBox(height: 12),
                     FilledButton(
                       onPressed: () => setState(() => _future = _load()),
@@ -164,26 +168,22 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 TrendChart(data: d.trend),
               ],
               const SizedBox(height: 16),
-              if (d.topExpenses.isNotEmpty) ...[
+              if (_topExpenses.isNotEmpty) ...[
                 Text(AppLocalizations.of(context)!.sectionTitle_topExpenses, style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: 8),
-                ...d.topExpenses.map((t) => TopExpenseTile(expense: t)),
+                ..._topExpenses.map((t) => TopExpenseTile(expense: t)),
                 if (_hasMoreTopExpenses)
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 8),
                     child: _loadingMore
                         ? const Center(child: CircularProgressIndicator())
                         : TextButton(
-                            onPressed: () async {
-                              await _loadMoreTopExpenses();
-                              if (!mounted) return;
-                              setState(() {});
-                            },
+                            onPressed: () => _loadMoreTopExpenses(),
                             child: Text(AppLocalizations.of(context)!.btn_loadMore),
                           ),
                   ),
               ],
-              if (d.breakdown.isEmpty && d.trend.isEmpty && d.topExpenses.isEmpty)
+              if (d.breakdown.isEmpty && d.trend.isEmpty && _topExpenses.isEmpty)
                 Center(child: Padding(
                   padding: const EdgeInsets.all(32),
                   child: Text(AppLocalizations.of(context)!.emptyState_noDataForCycle, style: Theme.of(context).textTheme.bodyLarge),
@@ -199,7 +199,6 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 class _ReportData {
   final int income, expenses, net;
   final double rate;
-  final List<Map<String, dynamic>> breakdown, trend, topExpenses;
-  final bool hasMoreTopExpenses;
-  _ReportData(this.income, this.expenses, this.net, this.rate, this.breakdown, this.trend, this.topExpenses, this.hasMoreTopExpenses);
+  final List<Map<String, dynamic>> breakdown, trend;
+  _ReportData(this.income, this.expenses, this.net, this.rate, this.breakdown, this.trend);
 }

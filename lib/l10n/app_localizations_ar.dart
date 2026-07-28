@@ -204,6 +204,15 @@ class AppLocalizationsAr extends AppLocalizations {
   String get error_selectCategory => 'الرجاء اختيار فئة';
 
   @override
+  String get error_duplicateCategory => 'توجد فئة بهذا الاسم بالفعل';
+
+  @override
+  String get error_goalNotFound => 'الهدف غير موجود';
+
+  @override
+  String get error_invalidGoalId => 'معرف الهدف غير صالح';
+
+  @override
   String get btn_add => 'إضافة';
 
   @override

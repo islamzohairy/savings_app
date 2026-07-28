@@ -49,7 +49,7 @@ String toWesternDigits(String input) {
 }
 
 /// Maximum integer digits allowed in monetary input (before decimal point).
-const int _maxIntegerDigits = 12;
+const int _maxIntegerDigits = 10;
 
 /// Maximum decimal places allowed in monetary input.
 const int _maxDecimalPlaces = 2;

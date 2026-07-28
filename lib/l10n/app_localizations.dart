@@ -452,6 +452,24 @@ abstract class AppLocalizations {
   /// **'Please select a category'**
   String get error_selectCategory;
 
+  /// No description provided for @error_duplicateCategory.
+  ///
+  /// In en, this message translates to:
+  /// **'A category with this name already exists'**
+  String get error_duplicateCategory;
+
+  /// No description provided for @error_goalNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Goal not found'**
+  String get error_goalNotFound;
+
+  /// No description provided for @error_invalidGoalId.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid goal ID'**
+  String get error_invalidGoalId;
+
   /// No description provided for @btn_add.
   ///
   /// In en, this message translates to:

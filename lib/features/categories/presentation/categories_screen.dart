@@ -180,8 +180,17 @@ class CategoriesScreen extends ConsumerWidget {
           TextButton(onPressed: () => Navigator.pop(ctx), child: Text(AppLocalizations.of(context)!.btn_cancel)),
           FilledButton(onPressed: () async {
             if (nameCtrl.text.trim().isEmpty) return;
+            final catRepo = ref.read(categoryRepoProvider);
+            if (await catRepo.isNameTaken(nameCtrl.text.trim())) {
+              if (ctx.mounted) {
+                ScaffoldMessenger.of(ctx).showSnackBar(
+                  SnackBar(content: Text(AppLocalizations.of(context)!.error_duplicateCategory)),
+                );
+              }
+              return;
+            }
             try {
-              await ref.read(categoryRepoProvider).insert({
+              await catRepo.insert({
                 'name': nameCtrl.text.trim(),
                 'iconKey': 'label',
                 'colorHex': '757575',
@@ -216,8 +225,17 @@ class CategoriesScreen extends ConsumerWidget {
           TextButton(onPressed: () => Navigator.pop(ctx), child: Text(AppLocalizations.of(context)!.btn_cancel)),
           FilledButton(onPressed: () async {
             if (nameCtrl.text.trim().isEmpty) return;
+            final catRepo = ref.read(categoryRepoProvider);
+            if (await catRepo.isNameTaken(nameCtrl.text.trim(), excludeId: cat['id'] as int)) {
+              if (ctx.mounted) {
+                ScaffoldMessenger.of(ctx).showSnackBar(
+                  SnackBar(content: Text(AppLocalizations.of(context)!.error_duplicateCategory)),
+                );
+              }
+              return;
+            }
             try {
-              await ref.read(categoryRepoProvider).update(cat['id'] as int, {
+              await catRepo.update(cat['id'] as int, {
                 'name': nameCtrl.text.trim(),
               });
               invalidateCategories(ref);

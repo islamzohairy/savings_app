@@ -204,6 +204,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get error_selectCategory => 'Please select a category';
 
   @override
+  String get error_duplicateCategory =>
+      'A category with this name already exists';
+
+  @override
+  String get error_goalNotFound => 'Goal not found';
+
+  @override
+  String get error_invalidGoalId => 'Invalid goal ID';
+
+  @override
   String get btn_add => 'Add';
 
   @override

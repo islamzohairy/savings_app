@@ -97,28 +97,55 @@ class GoalRepository {
         'createdAt': now,
         'updatedAt': now,
       });
-      final goalRows = await txn.query('goals', where: 'id = ?', whereArgs: [goalId]);
-      if (goalRows.isEmpty) return;
-      final goal = goalRows.first;
-      final target = goal['targetAmountMinor'] as int?;
-      final status = goal['status'] as int;
-      if (target != null && target > 0 && status == 0) {
-        final result = await txn.rawQuery(
-          'SELECT COALESCE(SUM(amountMinor), 0) as total FROM transactions WHERE goalId = ? AND type = 2',
-          [goalId],
-        );
-        final after = (result.first['total'] as int?) ?? 0;
-        if (after >= target) {
-          await txn.update('goals', {'status': 2}, where: 'id = ?', whereArgs: [goalId]);
-        }
-      }
+      await _reEvaluateGoalStatus(txn, goalId);
     });
+  }
+
+  /// Re-evaluates goal completion status based on current contribution total.
+  ///
+  /// If the goal is active or paused and the current amount >= target,
+  /// the goal is automatically marked as completed. If the goal is completed
+  /// but the amount has dropped below target (e.g. after a transaction edit),
+  /// it reverts to active.
+  Future<void> reEvaluateGoalStatus(int goalId) async {
+    final db = await _db.database;
+    await db.transaction((txn) => _reEvaluateGoalStatus(txn, goalId));
+  }
+
+  Future<void> _reEvaluateGoalStatus(Transaction txn, int goalId) async {
+    final goalRows = await txn.query('goals', where: 'id = ?', whereArgs: [goalId]);
+    if (goalRows.isEmpty) return;
+    final goal = goalRows.first;
+    final target = goal['targetAmountMinor'] as int?;
+    final status = goal['status'] as int;
+    if (target == null || target <= 0) return;
+    final result = await txn.rawQuery(
+      'SELECT COALESCE(SUM(amountMinor), 0) as total FROM transactions WHERE goalId = ? AND type = 2',
+      [goalId],
+    );
+    final after = (result.first['total'] as int?) ?? 0;
+    if (status == 0 || status == 1) {
+      if (after >= target) {
+        await txn.update('goals', {'status': 2}, where: 'id = ?', whereArgs: [goalId]);
+      }
+    } else if (status == 2) {
+      if (after < target) {
+        await txn.update('goals', {'status': 0}, where: 'id = ?', whereArgs: [goalId]);
+      }
+    }
   }
 
   Future<void> withdraw(int goalId, int amountMinor) async {
     if (amountMinor <= 0) throw ArgumentError('Amount must be positive');
     final db = await _db.database;
     await db.transaction((txn) async {
+      final goalRows = await txn.query('goals', where: 'id = ?', whereArgs: [goalId]);
+      if (goalRows.isEmpty) return;
+      final goal = goalRows.first;
+      final status = goal['status'] as int;
+      if (status != 0 && status != 1) {
+        throw StateError('Cannot withdraw from ${GoalStatus.values[status].name} goal');
+      }
       final now = DateTime.now().toIso8601String();
       await txn.insert('transactions', {
         'type': 2,
@@ -128,11 +155,7 @@ class GoalRepository {
         'createdAt': now,
         'updatedAt': now,
       });
-      final goalRows = await txn.query('goals', where: 'id = ?', whereArgs: [goalId]);
-      if (goalRows.isEmpty) return;
-      final goal = goalRows.first;
       final target = goal['targetAmountMinor'] as int?;
-      final status = goal['status'] as int;
       if (status == 2) {
         final result = await txn.rawQuery(
           'SELECT COALESCE(SUM(amountMinor), 0) as total FROM transactions WHERE goalId = ? AND type = 2',

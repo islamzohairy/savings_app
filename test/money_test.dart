@@ -72,9 +72,9 @@ void main() {
       expect(result.text, '12.56');
     });
 
-    test('enforces max 12 integer digits', () {
+    test('enforces max 10 integer digits', () {
       final result = fmt.formatEditUpdate(empty, const TextEditingValue(text: '1234567890123'));
-      expect(result.text, '123456789012');
+      expect(result.text, '1234567890');
     });
 
     test('allows trailing decimal point', () {

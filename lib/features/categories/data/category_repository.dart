@@ -55,4 +55,19 @@ class CategoryRepository {
     );
     return Sqflite.firstIntValue(result) ?? 0;
   }
+
+  Future<bool> isNameTaken(String name, {int? excludeId}) async {
+    final db = await _db.database;
+    String where = 'name = ?';
+    List<dynamic> args = [name];
+    if (excludeId != null) {
+      where += ' AND id != ?';
+      args.add(excludeId);
+    }
+    final result = await db.rawQuery(
+      'SELECT COUNT(*) as cnt FROM categories WHERE $where',
+      args,
+    );
+    return (Sqflite.firstIntValue(result) ?? 0) > 0;
+  }
 }

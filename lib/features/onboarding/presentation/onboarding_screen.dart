@@ -23,6 +23,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final _balanceCtrl = TextEditingController();
   final _goalNameCtrl = TextEditingController();
   final _goalAmountCtrl = TextEditingController();
+  bool _isFinishing = false;
 
   static const _currencies = ['USD', 'EUR', 'GBP', 'EGP', 'SAR', 'AED'];
 
@@ -211,7 +212,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         const SizedBox(height: 24),
         Text(AppLocalizations.of(context)!.onboarding_doneBody, style: Theme.of(context).textTheme.bodyLarge, textAlign: TextAlign.center),
         const Spacer(),
-        FilledButton(onPressed: _finish, child: Text(AppLocalizations.of(context)!.btn_startSaving)),
+        FilledButton(
+          onPressed: _isFinishing ? null : _finish,
+          child: _isFinishing
+              ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+              : Text(AppLocalizations.of(context)!.btn_startSaving),
+        ),
         const SizedBox(height: 16),
       ],
     ),
@@ -245,6 +251,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   Future<void> _finish() async {
+    if (_isFinishing) return;
+    setState(() => _isFinishing = true);
     try {
       final db = AppDatabase.instance;
       await ref.read(settingsProvider.notifier).set('currencyCode', _currency);
@@ -263,6 +271,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           'updatedAt': now,
         });
       }
+      if (!mounted) return;
 
       if (_goalNameCtrl.text.trim().isNotEmpty) {
         final goalValidation = validateAmount(_goalAmountCtrl.text);
@@ -277,6 +286,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           'createdAt': now,
         });
       }
+      if (!mounted) return;
 
       await db.completeOnboarding();
 
@@ -285,6 +295,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       }
     } catch (e) {
       if (mounted) {
+        setState(() => _isFinishing = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(AppLocalizations.of(context)!.error_generic('$e'))),
         );

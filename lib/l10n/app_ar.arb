@@ -96,6 +96,9 @@
   "error_invalidAmount": "الرجاء إدخال مبلغ صحيح",
   "error_selectGoal": "الرجاء اختيار هدف",
   "error_selectCategory": "الرجاء اختيار فئة",
+  "error_duplicateCategory": "توجد فئة بهذا الاسم بالفعل",
+  "error_goalNotFound": "الهدف غير موجود",
+  "error_invalidGoalId": "معرف الهدف غير صالح",
 
   "btn_add": "إضافة",
   "btn_update": "تحديث",
