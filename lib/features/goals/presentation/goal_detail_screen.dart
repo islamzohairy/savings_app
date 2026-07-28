@@ -122,7 +122,7 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
           if (target != null) ...[
             LinearProgressIndicator(value: progress, minHeight: 12, color: color),
             const SizedBox(height: 8),
-            Text(AppLocalizations.of(context)!.label_amountOfTarget(formatAmount(_currentAmount), formatAmount(target)), style: Theme.of(context).textTheme.titleMedium, overflow: TextOverflow.ellipsis),
+            Text(AppLocalizations.of(context)!.label_amountOfTarget(formatCompactAmount(_currentAmount), formatCompactAmount(target)), style: Theme.of(context).textTheme.titleMedium, overflow: TextOverflow.ellipsis),
             Text(AppLocalizations.of(context)!.label_percentSaved((progress * 100).toStringAsFixed(1))),
             if (status == GoalStatus.completed && _currentAmount > target) ...[
               const SizedBox(height: 8),

@@ -140,8 +140,8 @@ class _GoalTile extends ConsumerWidget {
           leading: CircleAvatar(backgroundColor: color, child: Icon(Icons.flag, color: Theme.of(context).colorScheme.onPrimary, size: 20)),
           title: Text(goal['name'] as String),
           subtitle: target != null
-              ? Text(AppLocalizations.of(context)!.label_amountOfTarget(formatAmount(current), formatAmount(target)), maxLines: 1, overflow: TextOverflow.ellipsis)
-              : Text(formatAmount(current), maxLines: 1, overflow: TextOverflow.ellipsis),
+              ? Text(AppLocalizations.of(context)!.label_amountOfTarget(formatCompactAmount(current), formatCompactAmount(target)), maxLines: 1, overflow: TextOverflow.ellipsis)
+              : Text(formatCompactAmount(current), maxLines: 1, overflow: TextOverflow.ellipsis),
           trailing: status == GoalStatus.active
               ? SizedBox(
                   width: 60,

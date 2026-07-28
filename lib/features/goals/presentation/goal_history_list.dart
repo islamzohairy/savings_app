@@ -127,7 +127,7 @@ class _GoalHistoryListState extends ConsumerState<GoalHistoryList> {
                 color: isWithdrawal ? Theme.of(context).colorScheme.error : Theme.of(context).colorScheme.tertiary,
               ),
             ),
-            title: Text(formatAmount(amount)),
+            title: Text(formatCompactAmount(amount)),
             subtitle: Text(DateFormat.yMMMd().format(date)),
             trailing: PopupMenuButton<String>(
               onSelected: (v) => _handleTxnMenu(v, t),
