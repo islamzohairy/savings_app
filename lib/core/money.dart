@@ -4,12 +4,18 @@ import 'package:intl/intl.dart';
 /// Global currency code kept in sync by [SettingsNotifier].
 String activeCurrencyCode = 'USD';
 
+NumberFormat? _cachedFormat;
+String? _cachedCurrencyCode;
+
 String currencyPrefix() => '${symbolFor(activeCurrencyCode)} ';
 
 String formatAmount(int amountMinor) {
   final amount = amountMinor / 100;
-  final fmt = NumberFormat.currency(locale: 'en_US', symbol: symbolFor(activeCurrencyCode));
-  return fmt.format(amount);
+  if (_cachedFormat == null || _cachedCurrencyCode != activeCurrencyCode) {
+    _cachedCurrencyCode = activeCurrencyCode;
+    _cachedFormat = NumberFormat.currency(locale: 'en_US', symbol: symbolFor(activeCurrencyCode));
+  }
+  return _cachedFormat!.format(amount);
 }
 
 /// Formats an amount in minor units using compact abbreviations:

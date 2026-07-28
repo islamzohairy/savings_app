@@ -56,6 +56,17 @@ class GoalRepository {
     return Sqflite.firstIntValue(result) ?? 0;
   }
 
+  Future<Map<int, int>> currentAmounts(List<int> goalIds) async {
+    if (goalIds.isEmpty) return {};
+    final db = await _db.database;
+    final placeholders = goalIds.map((_) => '?').join(',');
+    final results = await db.rawQuery(
+      'SELECT goalId, SUM(amountMinor) as total FROM transactions WHERE goalId IN ($placeholders) AND type = 2 GROUP BY goalId',
+      goalIds,
+    );
+    return { for (final r in results) r['goalId'] as int: (r['total'] as int?) ?? 0 };
+  }
+
   /// Returns projected completion date based on current saving pace.
   /// Returns null if no data or target is unreachable.
   Future<DateTime?> projectedCompletion(int goalId, int targetAmountMinor) async {

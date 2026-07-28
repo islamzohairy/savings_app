@@ -169,7 +169,7 @@ void main() {
       await tester.pumpWidget(wrapWithProviders(
         GoalProgressCard(goal: {
           'id': 1, 'name': 'Car', 'targetAmountMinor': 100000, 'colorHex': '4CAF50',
-        }),
+        }, currentAmount: 0),
         container: container,
       ));
       await tester.pump();

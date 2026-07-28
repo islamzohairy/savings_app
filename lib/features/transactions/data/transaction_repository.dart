@@ -33,17 +33,6 @@ class TransactionRepository {
     return rows.isNotEmpty ? rows.first : null;
   }
 
-  Future<List<Map<String, dynamic>>> getByDateRange(DateTime start, DateTime end, {int? categoryId}) async {
-    final db = await _db.database;
-    String? where = 'date >= ? AND date <= ?';
-    List<dynamic> args = [start.toIso8601String(), end.toIso8601String()];
-    if (categoryId != null) {
-      where += ' AND categoryId = ?';
-      args.add(categoryId);
-    }
-    return db.query('transactions', where: where, whereArgs: args, orderBy: 'date DESC');
-  }
-
   Future<int> monthTotal(TransactionType type, DateTime start, DateTime end) async {
     final db = await _db.database;
     final result = await db.rawQuery(
@@ -76,27 +65,34 @@ class TransactionRepository {
     }
     ranges.sort((a, b) => a.start.compareTo(b.start));
 
+    final earliest = ranges.first.start.toIso8601String();
+    final latest = ranges.last.end.toIso8601String();
+    final rows = await db.rawQuery('''
+      SELECT strftime('%Y-%m', date) as month,
+             SUM(CASE WHEN type = 0 THEN amountMinor ELSE 0 END) as income,
+             SUM(CASE WHEN type = 1 THEN amountMinor ELSE 0 END) as expenses,
+             SUM(CASE WHEN type = 0 THEN amountMinor WHEN type = 1 THEN -amountMinor ELSE 0 END) as net
+      FROM transactions
+      WHERE date >= ? AND date <= ?
+      GROUP BY month
+      ORDER BY month ASC
+    ''', [earliest, latest]);
+
     final results = <Map<String, dynamic>>[];
-    for (final r in ranges) {
-      final rows = await db.rawQuery('''
-        SELECT SUM(CASE WHEN type = 0 THEN amountMinor ELSE 0 END) as income,
-               SUM(CASE WHEN type = 1 THEN amountMinor ELSE 0 END) as expenses,
-               SUM(CASE WHEN type = 0 THEN amountMinor WHEN type = 1 THEN -amountMinor ELSE 0 END) as net
-        FROM transactions
-        WHERE date >= ? AND date <= ?
-      ''', [r.start.toIso8601String(), r.end.toIso8601String()]);
-      final row = rows.first;
+    for (final row in rows) {
       final income = (row['income'] as int?) ?? 0;
       final expenses = (row['expenses'] as int?) ?? 0;
       final net = (row['net'] as int?) ?? 0;
-      results.add({
-        'month': '${r.start.year}-${r.start.month.toString().padLeft(2, '0')}',
-        'income': income,
-        'expenses': expenses,
-        'net': net,
-      });
+      if (income > 0 || expenses > 0) {
+        results.add({
+          'month': row['month'] as String,
+          'income': income,
+          'expenses': expenses,
+          'net': net,
+        });
+      }
     }
-    return results.where((r) => (r['income'] as int) > 0 || (r['expenses'] as int) > 0).toList();
+    return results;
   }
 
   Future<List<Map<String, dynamic>>> topExpenses(DateTime start, DateTime end, {int limit = 5}) async {
@@ -155,6 +151,34 @@ class TransactionRepository {
     return Sqflite.firstIntValue(result) ?? 0;
   }
 
+  /// Single query returning all dashboard aggregates at once.
+  /// Returns a map with keys: lifetimeIncome, lifetimeExpenses, goalBalances,
+  /// monthIncome, monthExpenses, monthMoved.
+  Future<Map<String, int>> dashboardAggregates(DateTime start, DateTime end) async {
+    final db = await _db.database;
+    final startStr = start.toIso8601String();
+    final endStr = end.toIso8601String();
+    final result = await db.rawQuery('''
+      SELECT
+        SUM(CASE WHEN type = 0 THEN amountMinor ELSE 0 END) as lifetimeIncome,
+        SUM(CASE WHEN type = 1 THEN amountMinor ELSE 0 END) as lifetimeExpenses,
+        SUM(CASE WHEN type = 2 THEN amountMinor ELSE 0 END) as goalBalances,
+        SUM(CASE WHEN type = 0 AND date >= ? AND date <= ? THEN amountMinor ELSE 0 END) as monthIncome,
+        SUM(CASE WHEN type = 1 AND date >= ? AND date <= ? THEN amountMinor ELSE 0 END) as monthExpenses,
+        SUM(CASE WHEN type = 2 AND date >= ? AND date <= ? THEN amountMinor ELSE 0 END) as monthMoved
+      FROM transactions
+    ''', [startStr, endStr, startStr, endStr, startStr, endStr]);
+    final row = result.first;
+    return {
+      'lifetimeIncome': (row['lifetimeIncome'] as int?) ?? 0,
+      'lifetimeExpenses': (row['lifetimeExpenses'] as int?) ?? 0,
+      'goalBalances': (row['goalBalances'] as int?) ?? 0,
+      'monthIncome': (row['monthIncome'] as int?) ?? 0,
+      'monthExpenses': (row['monthExpenses'] as int?) ?? 0,
+      'monthMoved': (row['monthMoved'] as int?) ?? 0,
+    };
+  }
+
   Future<List<Map<String, dynamic>>> getAllPaginated({int limit = 50, String? cursorDate, int? cursorId}) async {
     final db = await _db.database;
     if (cursorDate == null || cursorId == null) {
@@ -205,15 +229,6 @@ class TransactionRepository {
       ORDER BY t.amountMinor DESC, t.id DESC
       LIMIT ?
     ''', [start.toIso8601String(), end.toIso8601String(), cursorAmountMinor, cursorAmountMinor, cursorId, limit]);
-  }
-
-  Future<int> topExpensesCount(DateTime start, DateTime end) async {
-    final db = await _db.database;
-    final result = await db.rawQuery(
-      'SELECT COUNT(*) as cnt FROM transactions WHERE type = 1 AND date >= ? AND date <= ?',
-      [start.toIso8601String(), end.toIso8601String()],
-    );
-    return Sqflite.firstIntValue(result) ?? 0;
   }
 
   Future<List<Map<String, dynamic>>> goalHistoryPaginated(int goalId, {int limit = 50, String? cursorDate, int? cursorId}) async {

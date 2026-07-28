@@ -1694,12 +1694,11 @@ void main() {
       expect(await repo.getById(99999), isNull);
     });
 
-    test('topExpensesCount counts expenses in range', () async {
-      final (start, end) = monthDateRange(DateTime(2025, 7, 15), 1);
+    test('totalCount counts all transactions', () async {
       await insertTxn(type: 1, amountMinor: 1000, date: DateTime(2025, 7, 15));
       await insertTxn(type: 1, amountMinor: 2000, date: DateTime(2025, 7, 20));
       await insertTxn(type: 0, amountMinor: 3000, date: DateTime(2025, 7, 15));
-      expect(await repo.topExpensesCount(start, end), 2);
+      expect(await repo.totalCount(), 3);
     });
   });
 

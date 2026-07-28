@@ -10,6 +10,7 @@ class TransactionTile extends StatelessWidget {
   final Map<String, dynamic> transaction;
   final VoidCallback? onTap;
   final VoidCallback? onLongPress;
+  static final _dateFmt = DateFormat.MMMd();
 
   @override
   Widget build(BuildContext context) {
@@ -38,7 +39,7 @@ class TransactionTile extends StatelessWidget {
       ),
       title: Text(formatAmount(t['amountMinor'] as int), maxLines: 1, overflow: TextOverflow.ellipsis),
       subtitle: Text(subtitle, maxLines: 1, overflow: TextOverflow.ellipsis),
-      trailing: Text(DateFormat.MMMd().format(date), style: Theme.of(context).textTheme.bodySmall),
+      trailing: Text(_dateFmt.format(date), style: Theme.of(context).textTheme.bodySmall),
       onTap: onTap,
       onLongPress: onLongPress,
     );

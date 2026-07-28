@@ -184,7 +184,6 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
   void _add(BuildContext context) async {
     await Navigator.push(context, MaterialPageRoute(builder: (_) => const AddEditTransactionScreen()));
     if (!mounted) return;
-    invalidateTransactions(ref);
     invalidateCategories(ref);
     invalidateDashboard(ref);
     _loadInitial();
@@ -196,7 +195,6 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     await Navigator.push(this.context, MaterialPageRoute(
       builder: (_) => AddEditTransactionScreen(transaction: fresh ?? t)));
     if (!mounted) return;
-    invalidateTransactions(ref);
     invalidateGoals(ref);
     invalidateDashboard(ref);
     _loadInitial();
@@ -210,7 +208,6 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
           try {
             await ref.read(transactionRepoProvider).delete(t['id'] as int);
             if (!mounted) return;
-            invalidateTransactions(ref);
             invalidateGoals(ref);
             invalidateDashboard(ref);
             if (ctx.mounted) Navigator.pop(ctx);

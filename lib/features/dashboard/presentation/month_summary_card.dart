@@ -10,13 +10,14 @@ class MonthSummaryCard extends StatelessWidget {
   final double rate;
   final VoidCallback onToggle;
   final bool showLifetime;
+  static final _monthFmt = DateFormat.MMMM();
 
   @override
   Widget build(BuildContext context) {
     final displayIncome = showLifetime ? lifetimeIncome : income;
     final displayExpenses = showLifetime ? lifetimeExpenses : expenses;
     final displayRate = savingsRate(displayIncome, displayExpenses);
-    final label = showLifetime ? AppLocalizations.of(context)!.toggle_lifetime : DateFormat.MMMM().format(DateTime.now());
+    final label = showLifetime ? AppLocalizations.of(context)!.toggle_lifetime : _monthFmt.format(DateTime.now());
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),

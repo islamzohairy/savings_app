@@ -15,7 +15,7 @@ class TrendChart extends StatelessWidget {
     }
     if (spots.isEmpty) return const SizedBox.shrink();
     final chartHeight = MediaQuery.of(context).size.height * 0.25;
-    return SizedBox(
+    return RepaintBoundary(child: SizedBox(
       height: chartHeight,
       child: BarChart(
         BarChartData(
@@ -53,6 +53,6 @@ class TrendChart extends StatelessWidget {
           gridData: const FlGridData(show: false),
         ),
       ),
-    );
+    ));
   }
 }

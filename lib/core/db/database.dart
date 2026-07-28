@@ -25,7 +25,7 @@ class AppDatabase {
     final path = p.join(dir, 'savings.sqlite');
     final db = await openDatabase(
       path,
-      version: 3,
+      version: 4,
       onCreate: (db, version) async {
         await _createTables(db);
         await _seedDefaults(db);
@@ -54,6 +54,13 @@ class AppDatabase {
         }
         if (oldVersion < 3) {
           await _repairOrphans(db);
+        }
+        if (oldVersion < 4) {
+          await db.execute('CREATE INDEX IF NOT EXISTS idx_txn_type_date ON transactions(type, date)');
+          await db.execute('CREATE INDEX IF NOT EXISTS idx_txn_goalid_type ON transactions(goalId, type)');
+          await db.execute('CREATE INDEX IF NOT EXISTS idx_txn_date_id ON transactions(date DESC, id DESC)');
+          await db.execute('CREATE INDEX IF NOT EXISTS idx_txn_type_date_amount_id ON transactions(type, date, amountMinor DESC, id DESC)');
+          await db.execute('CREATE INDEX IF NOT EXISTS idx_txn_categoryid ON transactions(categoryId)');
         }
       },
     );
@@ -150,6 +157,12 @@ class AppDatabase {
         value TEXT NOT NULL
       )
     ''');
+
+    await db.execute('CREATE INDEX idx_txn_type_date ON transactions(type, date)');
+    await db.execute('CREATE INDEX idx_txn_goalid_type ON transactions(goalId, type)');
+    await db.execute('CREATE INDEX idx_txn_date_id ON transactions(date DESC, id DESC)');
+    await db.execute('CREATE INDEX idx_txn_type_date_amount_id ON transactions(type, date, amountMinor DESC, id DESC)');
+    await db.execute('CREATE INDEX idx_txn_categoryid ON transactions(categoryId)');
   }
 
   Future<void> _seedDefaults(Database db) async {
@@ -193,6 +206,13 @@ class AppDatabase {
     final db = await database;
     final rows = await db.query('settings', where: 'key = ?', whereArgs: [key]);
     return rows.isNotEmpty ? rows.first['value'] as String : null;
+  }
+
+  Future<Map<String, String>> getSettings(List<String> keys) async {
+    final db = await database;
+    final placeholders = keys.map((_) => '?').join(',');
+    final rows = await db.query('settings', where: 'key IN ($placeholders)', whereArgs: keys);
+    return { for (final r in rows) r['key'] as String: r['value'] as String };
   }
 
   Future<void> setSetting(String key, String value) async {

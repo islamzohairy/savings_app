@@ -12,11 +12,7 @@ class SettingsNotifier extends Notifier<Map<String, String>> {
   Future<void> load() async {
     final db = AppDatabase.instance;
     final keys = ['currencyCode', 'themeMode', 'monthStartDay', 'firstDayOfWeek', 'appLockEnabled', 'hasCompletedOnboarding', 'languageCode'];
-    final map = <String, String>{};
-    for (final k in keys) {
-      final v = await db.getSetting(k);
-      if (v != null) map[k] = v;
-    }
+    final map = await db.getSettings(keys);
     state = map;
     activeCurrencyCode = currencyCode;
   }

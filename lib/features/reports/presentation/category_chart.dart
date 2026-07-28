@@ -17,22 +17,24 @@ class CategoryChart extends StatelessWidget {
       children: [
         SizedBox(
           height: chartHeight,
-          child: PieChart(
-            PieChartData(
-              sections: data.map((d) {
-                final amount = d['total'] as int;
-                final color = colorFromHex(d['colorHex'] as String);
-                final pct = total > 0 ? (amount / total * 100) : 0.0;
-                return PieChartSectionData(
-                  value: amount.toDouble(),
-                  color: color,
-                  title: AppLocalizations.of(context)!.label_percent(pct.toStringAsFixed(0)),
-                  radius: chartHeight / 2 - 20,
-                  titleStyle: TextStyle(color: Theme.of(context).colorScheme.onPrimary, fontSize: 12, fontWeight: FontWeight.bold),
-                );
-              }).toList(),
-              centerSpaceRadius: 0,
-              sectionsSpace: 2,
+          child: RepaintBoundary(
+            child: PieChart(
+              PieChartData(
+                sections: data.map((d) {
+                  final amount = d['total'] as int;
+                  final color = colorFromHex(d['colorHex'] as String);
+                  final pct = total > 0 ? (amount / total * 100) : 0.0;
+                  return PieChartSectionData(
+                    value: amount.toDouble(),
+                    color: color,
+                    title: AppLocalizations.of(context)!.label_percent(pct.toStringAsFixed(0)),
+                    radius: chartHeight / 2 - 20,
+                    titleStyle: TextStyle(color: Theme.of(context).colorScheme.onPrimary, fontSize: 12, fontWeight: FontWeight.bold),
+                  );
+                }).toList(),
+                centerSpaceRadius: 0,
+                sectionsSpace: 2,
+              ),
             ),
           ),
         ),

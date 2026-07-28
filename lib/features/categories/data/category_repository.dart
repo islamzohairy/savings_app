@@ -10,13 +10,6 @@ class CategoryRepository {
     return db.query('categories', orderBy: 'sortOrder ASC');
   }
 
-  Stream<List<Map<String, dynamic>>> watchAll() async* {
-    final db = await _db.database;
-    yield* db.query('categories', orderBy: 'sortOrder ASC').asStream();
-
-    // sqflite doesn't have native watch — poll on changes
-  }
-
   Future<List<Map<String, dynamic>>> getActive() async {
     final db = await _db.database;
     return db.query('categories', where: 'isArchived = 0', orderBy: 'sortOrder ASC');

@@ -238,7 +238,6 @@ class _AddEditTransactionScreenState extends ConsumerState<AddEditTransactionScr
     }
 
     if (!mounted) return;
-    invalidateTransactions(ref);
     invalidateDashboard(ref);
     invalidateGoals(ref);
     Navigator.pop(context);

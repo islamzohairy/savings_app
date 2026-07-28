@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/money.dart';
 import '../../../l10n/app_localizations.dart';
 import '../application/goal_provider.dart';
-import '../../transactions/application/transaction_provider.dart';
 import '../../dashboard/application/dashboard_provider.dart';
 
 class GoalContributeDialog extends ConsumerStatefulWidget {
@@ -78,7 +77,6 @@ class _GoalContributeDialogState extends ConsumerState<GoalContributeDialog> {
             if (!mounted) return;
             invalidateGoals(ref);
             invalidateDashboard(ref);
-            invalidateTransactions(ref);
             widget.onComplete();
             if (context.mounted) Navigator.pop(context);
           } catch (e) {

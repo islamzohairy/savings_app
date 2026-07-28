@@ -18,6 +18,7 @@ class GoalHistoryList extends ConsumerStatefulWidget {
 }
 
 class _GoalHistoryListState extends ConsumerState<GoalHistoryList> {
+  static final _dateFmt = DateFormat.yMMMd();
   final List<Map<String, dynamic>> _txns = [];
   bool _loading = true;
   bool _hasMore = true;
@@ -112,44 +113,47 @@ class _GoalHistoryListState extends ConsumerState<GoalHistoryList> {
     }
     if (_loading && _txns.isEmpty) return const LinearProgressIndicator();
     if (_txns.isEmpty) return Text(AppLocalizations.of(context)!.emptyState_noContributions);
-    return Column(
-      children: [
-        ..._txns.map((t) {
-          final amount = t['amountMinor'] as int;
-          final isWithdrawal = amount < 0;
-          final date = DateTime.parse(t['date'] as String);
-          return ListTile(
-            key: ValueKey(t['id']),
-            dense: true,
-            contentPadding: EdgeInsets.zero,
-            leading: CircleAvatar(
-              radius: 16,
-              backgroundColor: isWithdrawal
-                  ? Theme.of(context).colorScheme.error.withAlpha(30)
-                  : Theme.of(context).colorScheme.tertiary.withAlpha(30),
-              child: Icon(
-                isWithdrawal ? Icons.arrow_upward : Icons.arrow_downward,
-                size: 16,
-                color: isWithdrawal ? Theme.of(context).colorScheme.error : Theme.of(context).colorScheme.tertiary,
-              ),
-            ),
-            title: Text(formatCompactAmount(amount)),
-            subtitle: Text(DateFormat.yMMMd().format(date)),
-            trailing: PopupMenuButton<String>(
-              onSelected: (v) => _handleTxnMenu(v, t),
-              itemBuilder: (_) => [
-                PopupMenuItem(value: 'edit', child: Text(AppLocalizations.of(context)!.menu_edit)),
-                PopupMenuItem(value: 'delete', child: Text(AppLocalizations.of(context)!.menu_delete)),
-              ],
-            ),
-          );
-        }),
-        if (_loading && _txns.isNotEmpty)
-          const Padding(
+    return ListView.builder(
+      controller: _scrollCtrl,
+      padding: EdgeInsets.zero,
+      itemCount: _txns.length + (_loading && _txns.isNotEmpty ? 1 : 0),
+      itemBuilder: (ctx, i) {
+        if (i == _txns.length) {
+          return const Padding(
             padding: EdgeInsets.all(16),
             child: Center(child: CircularProgressIndicator()),
+          );
+        }
+        final t = _txns[i];
+        final amount = t['amountMinor'] as int;
+        final isWithdrawal = amount < 0;
+        final date = DateTime.parse(t['date'] as String);
+        return ListTile(
+          key: ValueKey(t['id']),
+          dense: true,
+          contentPadding: EdgeInsets.zero,
+          leading: CircleAvatar(
+            radius: 16,
+            backgroundColor: isWithdrawal
+                ? Theme.of(context).colorScheme.error.withAlpha(30)
+                : Theme.of(context).colorScheme.tertiary.withAlpha(30),
+            child: Icon(
+              isWithdrawal ? Icons.arrow_upward : Icons.arrow_downward,
+              size: 16,
+              color: isWithdrawal ? Theme.of(context).colorScheme.error : Theme.of(context).colorScheme.tertiary,
+            ),
           ),
-      ],
+          title: Text(formatCompactAmount(amount)),
+          subtitle: Text(_dateFmt.format(date)),
+          trailing: PopupMenuButton<String>(
+            onSelected: (v) => _handleTxnMenu(v, t),
+            itemBuilder: (_) => [
+              PopupMenuItem(value: 'edit', child: Text(AppLocalizations.of(context)!.menu_edit)),
+              PopupMenuItem(value: 'delete', child: Text(AppLocalizations.of(context)!.menu_delete)),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -162,7 +166,6 @@ class _GoalHistoryListState extends ConsumerState<GoalHistoryList> {
               try {
               await ref.read(transactionRepoProvider).delete(t['id'] as int);
               if (!mounted) return;
-              invalidateTransactions(ref);
               invalidateDashboard(ref);
               invalidateGoals(ref);
               if (ctx.mounted) Navigator.pop(ctx);
@@ -188,7 +191,6 @@ class _GoalHistoryListState extends ConsumerState<GoalHistoryList> {
           builder: (_) => AddEditTransactionScreen(transaction: fresh ?? t),
         ));
         if (!mounted) return;
-        invalidateTransactions(ref);
         invalidateGoals(ref);
         invalidateDashboard(ref);
         if (mounted) {

@@ -7,7 +7,6 @@ import '../../../core/calculations.dart';
 import '../../../l10n/app_localizations.dart';
 import '../application/goal_provider.dart';
 import '../../dashboard/application/dashboard_provider.dart';
-import '../../transactions/application/transaction_provider.dart';
 import 'goal_history_list.dart';
 import 'goal_contribute_dialog.dart';
 import 'goal_edit_dialog.dart';
@@ -281,7 +280,6 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
             onDelete: () async {
               try {
                 await repo.delete(id);
-                invalidateTransactions(ref);
                 invalidateGoals(ref);
                 invalidateDashboard(ref);
                 if (ctx.mounted) Navigator.pop(ctx, true);

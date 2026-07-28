@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../l10n/app_localizations.dart';
-import '../../transactions/application/transaction_provider.dart';
 import '../../goals/application/goal_provider.dart';
 import '../application/dashboard_provider.dart';
 import 'balance_card.dart';
@@ -34,7 +33,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       ),
       body: RefreshIndicator(
         onRefresh: () async {
-          invalidateTransactions(ref);
           invalidateGoals(ref);
           invalidateDashboard(ref);
         },
@@ -77,7 +75,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               if (d.goals.isNotEmpty) ...[
                 Text(AppLocalizations.of(context)!.sectionTitle_goals, style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: 8),
-                ...d.goals.map((g) => GoalProgressCard(goal: g)),
+                ...d.goals.map((g) => GoalProgressCard(goal: g, currentAmount: d.goalAmounts[g['id'] as int] ?? 0)),
               ],
               if (d.spendableBalance == 0 && d.goalBalances == 0 && d.goals.isEmpty) ...[
                 const SizedBox(height: 48),

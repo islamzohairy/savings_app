@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/theme.dart';
 import '../core/settings_provider.dart';
-import '../core/db/database.dart';
 import '../l10n/app_localizations.dart';
 import '../features/onboarding/presentation/onboarding_screen.dart';
 import '../features/app_lock/presentation/app_lock_screen.dart';
@@ -75,12 +74,10 @@ class _GateState extends ConsumerState<_Gate> with WidgetsBindingObserver {
   Future<void> _init() async {
     setState(() { _isLoading = true; _initError = null; });
     try {
-      final db = AppDatabase.instance;
       await ref.read(settingsProvider.notifier).load();
-      _onboardingDone = await db.hasCompletedOnboarding();
-      if (_onboardingDone) {
-        _appLockEnabled = (await db.getSetting('appLockEnabled')) == 'true';
-      }
+      final settings = ref.read(settingsProvider);
+      _onboardingDone = settings['hasCompletedOnboarding'] == 'true';
+      _appLockEnabled = settings['appLockEnabled'] == 'true';
       if (mounted) setState(() { _isLoading = false; _initError = null; });
     } catch (e) {
       if (mounted) setState(() { _isLoading = false; _initError = '$e'; });

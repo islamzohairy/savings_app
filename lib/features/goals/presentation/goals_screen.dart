@@ -131,9 +131,30 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
   }
 }
 
-class _GoalTile extends ConsumerWidget {
+class _GoalTile extends ConsumerStatefulWidget {
   const _GoalTile({required this.goal, super.key});
   final Map<String, dynamic> goal;
+
+  @override
+  ConsumerState<_GoalTile> createState() => _GoalTileState();
+}
+
+class _GoalTileState extends ConsumerState<_GoalTile> {
+  late Future<int> _future;
+
+  @override
+  void initState() {
+    super.initState();
+    _future = ref.read(goalRepoProvider).currentAmount(widget.goal['id'] as int);
+  }
+
+  @override
+  void didUpdateWidget(_GoalTile oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.goal['id'] != widget.goal['id']) {
+      _future = ref.read(goalRepoProvider).currentAmount(widget.goal['id'] as int);
+    }
+  }
 
   String _statusLabel(GoalStatus status, AppLocalizations loc) {
     switch (status) {
@@ -145,11 +166,12 @@ class _GoalTile extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
+    final goal = widget.goal;
     final status = GoalStatus.values[goal['status'] as int];
     final color = colorFromHex(goal['colorHex'] as String);
     return FutureBuilder<int>(
-      future: ref.read(goalRepoProvider).currentAmount(goal['id'] as int),
+      future: _future,
       builder: (ctx, snap) {
           if (snap.hasError) {
             return ListTile(
@@ -158,7 +180,7 @@ class _GoalTile extends ConsumerWidget {
               subtitle: Text(AppLocalizations.of(context)!.error_generic('${snap.error}')),
               trailing: IconButton(
                 icon: const Icon(Icons.refresh),
-                onPressed: () => invalidateGoals(ref),
+                onPressed: () => setState(() => _future = ref.read(goalRepoProvider).currentAmount(goal['id'] as int)),
               ),
             );
           }
