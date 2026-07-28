@@ -54,7 +54,7 @@ lib/
 │   ├── app.dart                 # MaterialApp + gate (onboarding → lock → main)
 │   └── router.dart              # go_router + bottom nav shell (5 tabs)
 ├── core/
-│   ├── db/database.dart         # SQLite schema v3, migrations, settings, seed defaults, orphan repair
+│   ├── db/database.dart         # SQLite schema v4, migrations, settings, seed defaults, orphan repair, 5 composite indexes
 │   ├── calculations.dart        # Pure functions: savingsRate, goalProgress, colorFromHex
 │   ├── money.dart               # MoneyInputFormatter, validateAmount, formatCompactAmount, ArabicDigitFormatter (PIN-only)
 │   ├── theme.dart               # Material3 light/dark with green seed
@@ -144,6 +144,11 @@ Categories (`/categories`) is reached via the Activity screen's category icon.
 - **Screen naming**: "Activity" throughout (list screen, add/edit dialogs, delete confirmation, empty state, Semantics labels).
 - **Extracted widgets**: Each large screen delegates to standalone single-responsibility widgets (e.g. `TransactionTile`, `BalanceCard`, `GoalContributeDialog`).
 - **Doc comments**: Public classes, methods, and non-trivial functions encoding a business rule get a `///` doc comment.
+- **Performance — cached formatters**: `NumberFormat` instances are cached globally and recreated only when currency changes. `DateFormat` instances used in list tiles are `static final`.
+- **Performance — batch queries**: Related SQL aggregates are combined into single queries (`dashboardAggregates`, `monthlyTrend` GROUP BY). Goal balances use `currentAmounts(List<int>)` batch method (single SQL, not N+1).
+- **Performance — no Futures in build**: Futures are cached in `initState()`/`didUpdateWidget()`, never created inside `build()`.
+- **Performance — lazy lists**: Long scrollable lists use `ListView.builder`, not `Column` with static children.
+- **Performance — chart isolation**: `RepaintBoundary` wraps `PieChart` and `BarChart` subtrees.
 
 ## Deletion Policies
 
@@ -164,7 +169,9 @@ All delete dialogs use `StatefulWidget` for double-tap protection (`_deleting` f
 
 ## Data Integrity & Migration
 
-The database schema is at **version 3**. On upgrade from v2→v3, `_repairOrphans()` runs:
+The database schema is at **version 4**. On upgrade from v2→v3, `_repairOrphans()` runs; on upgrade from v3→v4, 5 composite indexes are created:
+
+- **v3→v4 indexes:** `idx_txn_type_date`, `idx_txn_goalid_type`, `idx_txn_date_id`, `idx_txn_type_date_amount_id`, `idx_txn_categoryid`
 
 - **Orphaned `categoryId`** (references a deleted category) → relinked to the `Recovered / Unknown` category.
 - **Orphaned `goalId`** (references a deleted goal) → set to `NULL`.
@@ -196,8 +203,8 @@ flutter test
 flutter test --coverage
 ```
 
-**189 tests** across 7 test files:
-- `test/database_test.dart` — 96 tests (monthTotal, totalBalance, categoryBreakdown, monthlyTrend, topExpenses, savingsRate, spendable balance, goal overfunding, pagination, category filtering, delete behavioral invariants, stress tests, migration v3 orphan repair, goal status transitions, boundary stress, archive lifecycle, financial invariants, topExpensesPaginated, savingsInRange, totalByType, settings CRUD, cycle boundary math, **deterministic financial workflow** (7-step sequence with explicit per-step invariant checks), **randomized stress test** (500 operations with fixed seed verifying spendable+goals=total after every mutation), **extreme data** (max minor units, 500-char category/goal names, 1000-char notes, 100 rapid contribute/withdraw cycles), **goal delete invariant** (financial ledger preserved, goalId nullified, balances unchanged))
+**202 tests** across 7 test files:
+- `test/database_test.dart` — 109 tests (monthTotal, totalBalance, categoryBreakdown, monthlyTrend, topExpenses, savingsRate, spendable balance, goal overfunding, pagination, category filtering, delete behavioral invariants, stress tests, migration v3 orphan repair, goal status transitions, boundary stress, archive lifecycle, financial invariants, topExpensesPaginated, savingsInRange, totalByType, settings CRUD, cycle boundary math, **deterministic financial workflow** (7-step sequence with explicit per-step invariant checks), **randomized stress test** (500 operations with fixed seed verifying spendable+goals=total after every mutation), **extreme data** (max minor units, 500-char category/goal names, 1000-char notes, 100 rapid contribute/withdraw cycles), **goal delete invariant** (financial ledger preserved, goalId nullified, balances unchanged))
 - `test/money_test.dart` — 49 tests (toWesternDigits, MoneyInputFormatter, validateAmount, ArabicDigitFormatter, formatAmount, formatCompactAmount)
 - `test/widget_extracted_test.dart` — 16 tests (render tests for all extracted widgets)
 - `test/calculations_test.dart` — 17 tests (savingsRate, goalProgress, colorFromHex — valid/invalid/edge)
@@ -238,6 +245,25 @@ Clean — 0 analyzer issues.
 - **Dashboard screen** — shows error state with retry button when data loading fails.
 - **Goal history** — shows error SnackBar on pagination load failure; editing a transaction from goal history now invalidates all affected providers (stale data fix).
 - **Goal history pagination** — mounted guard prevents crash if user navigates away during async load.
+- **Negative amounts** — minus sign preserved when editing existing negative-amount transactions.
+- **Withdraw validation** — withdraw blocked when amount exceeds current goal balance.
+- **Goal status re-evaluation** — auto-complete checks current total (not just deposit); auto-revert when withdrawal drops below target.
+- **Duplicate category names** — blocked with SnackBar when adding/editing a category with an existing name.
+- **App lock PIN wrong 3 times** — shows lockout message instead of infinite re-prompt loop.
+
+## Performance Audit (v4)
+
+- **5 composite database indexes** added (schema v3→v4): `idx_txn_type_date`, `idx_txn_goalid_type`, `idx_txn_date_id`, `idx_txn_type_date_amount_id`, `idx_txn_categoryid`.
+- **Dashboard**: single `dashboardAggregates()` SQL replaces 8 sequential queries; goal amounts via batch `currentAmounts()`.
+- **Monthly trend**: single GROUP BY query replaces 6 sequential per-month queries.
+- **Settings load**: batch `getSettings()` replaces 7 sequential key reads.
+- **App init**: reads provider state instead of 2 extra DB queries.
+- **NumberFormat**: cached globally, recreated only on currency change.
+- **DateFormat**: `static final` on all list-tile formatters.
+- **Goal tile**: future cached in `initState()`, not re-created on every rebuild.
+- **Goal history**: `ListView.builder` replaces static `Column` for lazy rendering.
+- **Charts**: `RepaintBoundary` wrapping `PieChart` and `BarChart`.
+- **Dead code removed**: `transactionsProvider`, `invalidateTransactions()`, `topExpenses()`, `topExpensesCount()`, `getByDateRange()`, `watchAll()`.
 
 ## Project Stats
 
@@ -247,9 +273,9 @@ Clean — 0 analyzer issues.
 | Lines of code in `lib/` | 6,965 |
 | Test files | 7 |
 | Lines of code in `test/` | 2,841 |
-| Total tests | 189 |
+| Total tests | 202 |
 | ARB translation keys | 169 |
 | Supported languages | 2 (English, Arabic) |
 | Seed categories | 14 (+ 1 hidden recovery category) |
 | Features | 8 |
-| Database schema version | 3 |
+| Database schema version | 4 |

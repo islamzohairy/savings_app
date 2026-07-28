@@ -21,7 +21,7 @@ Feature-first, three layers per feature: `data/` (repo), `application/` (provide
 | `lib/main.dart` | Entry point, ProviderScope |
 | `lib/app/app.dart` | MaterialApp + gate (onboarding → lock → main) |
 | `lib/app/router.dart` | go_router + bottom nav shell (5 tabs) |
-| `lib/core/db/database.dart` | SQLite schema v3, migrations, settings helpers, seed defaults (14 categories), orphan repair |
+| `lib/core/db/database.dart` | SQLite schema v4, migrations, settings helpers, seed defaults (14 categories), orphan repair, 5 composite indexes |
 | `lib/core/calculations.dart` | Pure functions: `savingsRate()`, `goalProgress()`, `colorFromHex()` |
 | `lib/core/money.dart` | `MoneyInputFormatter` (monetary input), `validateAmount()`, `ArabicDigitFormatter` (PIN-only), `formatAmount()`, `formatCompactAmount()` (K/M/B for narrow UI), currency symbols |
 | `lib/core/theme.dart` | Material3 light/dark with green seed |
@@ -76,6 +76,11 @@ Categories (`/categories`) is not in the nav — reached via the Activity screen
 - **Localization:** Western (Latin) numerals always, even under the Arabic locale. Charts and the PIN keypad stay left-to-right regardless of locale. Seed category names use the `seedKey` + ARB-lookup pattern, cleared automatically when the user edits the name, so translations never clobber a user's customization.
 - **Mounted guards after async gaps:** Every `setState` / `ref.invalidate` call after an `await` must be preceded by `if (!mounted) return;`. This applies to all `_loadMore` pagination callbacks, `initState` async work, and any callback triggered from a non-UI context (e.g., `pop()` closures).
 - **Invalidation completeness:** When a mutation affects data in multiple features, all affected providers must be invalidated — not just the most obvious one. Example: editing a transaction from goal history must invalidate both `goalTransactionsProvider` (the list) and `transactionProvider` (the full transaction record).
+- **Performance — cached formatters:** `NumberFormat` instances are cached globally (recreated only on currency change). `DateFormat` instances used in list tiles are `static final`, never re-created per rebuild.
+- **Performance — batch queries:** Combine related SQL aggregates into a single query when possible (`dashboardAggregates`, `monthlyTrend` GROUP BY). Goal balances use `currentAmounts(List<int>)` batch method — single SQL, not N+1.
+- **Performance — no Futures in build:** Never create a `Future` inside `build()`. Cache futures in `initState()` and refresh via `didUpdateWidget()` when inputs change.
+- **Performance — lazy lists:** Long scrollable lists use `ListView.builder`, never `Column` with a static list of children.
+- **Performance — chart isolation:** `RepaintBoundary` around `PieChart` and `BarChart` subtrees to isolate repaints.
 
 ### Project-specific conventions
 
@@ -137,10 +142,11 @@ The original product plan listed "optional local encryption of stored data" as a
 
 - `PRAGMA foreign_keys = ON` enforced after every `openDatabase` call (enforced in app and tests).
 - FK constraints on `transactions.categoryId → categories(id)` and `transactions.goalId → goals(id)` defined in both `_createTables` and `onUpgrade` v1→v2.
+- `setDatabase()` does **not** set `PRAGMA foreign_keys = ON` — test databases that intentionally create orphan data rely on FK enforcement being OFF.
 
 ### Migration: orphan repair (v3)
 
-Database version is 3. On upgrade from v2→v3, `_repairOrphans()` runs:
+Database version is 4. On upgrade from v2→v3, `_repairOrphans()` runs:
 - Orphaned `categoryId` (references deleted category) → relinks to recovery category.
 - Orphaned `goalId` (references deleted goal) → set to NULL.
 - Never deletes orphaned rows. Preserves financial ledger.
@@ -179,6 +185,8 @@ All delete dialogs use `StatefulWidget` for double-tap protection (`_deleting` f
 - [x] Production-readiness audit: 7-phase audit (workflow crashes, extreme data, state management, pagination, financial invariants, test coverage, docs) — mounted guard fix in goal history, invalidation completeness fix, retry/error UI on goals + dashboard, 23 new database tests — 181 total, 0 analyzer issues
 - [x] Release candidate audit: 3 mounted guard fixes (app_lock, transactions, reports), 8 new database tests (deterministic workflow, 500-op random stress, extreme data, goal delete invariant) — 189 total, 0 analyzer issues, verified doc counts
 - [x] Release candidate hardening: 12 mounted guard fixes across 7 files, transaction category/goal required validation, maxLength on all name inputs, 169 ARB keys — 189 total, 0 analyzer issues
+- [x] RC manual QA audit: 11 confirmed bugs (H1-H2, M1-M7, L1-L9), all fixed; 3 new ARB keys (172 total), 33 regression tests, 202 total tests
+- [x] Performance audit: 15 optimizations implemented — 5 DB indexes (schema v4), batch dashboard aggregates, single GROUP BY trend query, batch settings load, cached NumberFormat, static final DateFormat, FutureBuilder fix, ListView.builder for history, RepaintBoundary on charts, dead code removal — 202 total tests, 0 analyzer issues
 
 ## Known Issues
 1. Spec called for Drift; implementation uses raw sqflite (deviation accepted)
